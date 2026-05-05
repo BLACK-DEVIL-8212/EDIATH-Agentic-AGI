@@ -1,0 +1,99 @@
+#:kivy 2.1.0
+
+<RootLayout@BoxLayout>:
+    orientation: 'vertical'
+
+    canvas.before:
+        Color:
+            rgba: app.theme.get_color('bg_color')
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    # ─────────────────────────────
+    # MAIN GRID (YOUR FULL UI)
+    # ─────────────────────────────
+    BoxLayout:
+        orientation: 'horizontal'
+
+        # ───────── LEFT SIDEBAR ─────────
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: 0.2
+            spacing: 10
+            padding: 10
+
+            Label:
+                text: "EDIATH AI"
+                size_hint_y: 0.1
+                bold: True
+
+            Card:
+                size_hint_y: 0.4
+                Label:
+                    text: "Avatar Window"
+
+            Card:
+                size_hint_y: 0.5
+                Label:
+                    text: "Planning Steps"
+
+        # ───────── CENTER PANEL ─────────
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: 0.6
+            spacing: 10
+            padding: 10
+
+            Card:
+                size_hint_y: 0.1
+                Label:
+                    text: "My Chat"
+
+            Card:
+                size_hint_y: 0.75
+                Label:
+                    text: "AI Response Area"
+
+            BoxLayout:
+                size_hint_y: 0.15
+                spacing: 10
+
+                TextInput:
+                    hint_text: "Type your message..."
+                    multiline: False
+
+                Button:
+                    text: "Send"
+
+        # ───────── RIGHT PANEL ─────────
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_x: 0.2
+            spacing: 10
+            padding: 10
+
+            Card:
+                size_hint_y: 0.4
+                Label:
+                    text: "Memory Graph"
+
+            Card:
+                size_hint_y: 0.6
+                Label:
+                    text: "System Stats\nCPU | GPU | RAM"
+
+    # ───────── BOTTOM STATUS BAR ─────────
+    BoxLayout:
+        size_hint_y: 0.1
+        padding: 10
+        spacing: 20
+
+        Label:
+            text: "Status: Idle"
+
+        Label:
+            text: "Time: --:--"
+
+        Label:
+            text: "Current Task: None"

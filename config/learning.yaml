@@ -1,0 +1,983 @@
+# Learning Configuration
+# Version: 2.0.0
+# Last Updated: 2026-04-22
+
+# =========================
+# GLOBAL LEARNING SETTINGS
+# =========================
+
+learning:
+  # Master enable/disable
+  enabled: true
+  
+  # Learning mode
+  mode: "adaptive"  # Options: supervised, unsupervised, reinforcement, adaptive, hybrid
+  
+  # Learning rate global
+  learning_rate: 0.001
+  
+  # Batch processing
+  batch_size: 32
+  max_batch_size: 256
+  
+  # Random seed for reproducibility
+  random_seed: 42
+  
+  # Device configuration
+  device: "auto"  # Options: cpu, cuda, mps, auto
+  
+  # Mixed precision training
+  mixed_precision: false
+  
+  # Distributed training
+  distributed_training:
+    enabled: false
+    backend: "nccl"  # Options: nccl, gloo, mpi
+    world_size: 1
+    rank: 0
+    master_addr: "localhost"
+    master_port: 12355
+
+# =========================
+# REINFORCEMENT LEARNING
+# =========================
+
+reinforcement:
+  # Master enable
+  enabled: true
+  
+  # Algorithm selection
+  algorithm: "PPO"  # Options: PPO, DQN, DDPG, SAC, A2C, TRPO, TD3
+  
+  # Algorithm-specific configurations
+  algorithms:
+    PPO:
+      learning_rate: 0.0003
+      n_steps: 2048
+      batch_size: 64
+      n_epochs: 10
+      gamma: 0.99
+      gae_lambda: 0.95
+      clip_range: 0.2
+      clip_range_vf: null
+      ent_coef: 0.01
+      vf_coef: 0.5
+      max_grad_norm: 0.5
+      use_sde: false
+      sde_sample_freq: -1
+      target_kl: null
+    
+    DQN:
+      learning_rate: 0.0001
+      buffer_size: 10000
+      learning_starts: 1000
+      batch_size: 32
+      tau: 1.0
+      gamma: 0.99
+      train_freq: 4
+      gradient_steps: 1
+      target_update_interval: 1000
+      exploration_fraction: 0.1
+      exploration_initial_eps: 1.0
+      exploration_final_eps: 0.05
+    
+    DDPG:
+      learning_rate: 0.001
+      buffer_size: 200000
+      learning_starts: 1000
+      batch_size: 64
+      tau: 0.005
+      gamma: 0.99
+      train_freq: 1
+      gradient_steps: 1
+      noise_std: 0.1
+    
+    SAC:
+      learning_rate: 0.0003
+      buffer_size: 1000000
+      learning_starts: 1000
+      batch_size: 256
+      tau: 0.005
+      gamma: 0.99
+      train_freq: 1
+      gradient_steps: 1
+      ent_coef: "auto"
+      target_entropy: "auto"
+    
+    A2C:
+      learning_rate: 0.0007
+      n_steps: 5
+      gamma: 0.99
+      gae_lambda: 1.0
+      ent_coef: 0.01
+      vf_coef: 0.5
+      max_grad_norm: 0.5
+    
+    TRPO:
+      learning_rate: 0.001
+      n_steps: 2048
+      batch_size: 64
+      gamma: 0.99
+      gae_lambda: 0.95
+      ent_coef: 0.01
+      vf_coef: 0.5
+      max_grad_norm: 0.5
+    
+    TD3:
+      learning_rate: 0.001
+      buffer_size: 1000000
+      learning_starts: 1000
+      batch_size: 64
+      tau: 0.005
+      gamma: 0.99
+      train_freq: 1
+      gradient_steps: 1
+      noise_std: 0.1
+  
+  # Common RL parameters
+  discount_factor: 0.99
+  gae_lambda: 0.95
+  entropy_coefficient: 0.01
+  
+  # Experience replay
+  experience_replay:
+    enabled: true
+    buffer_size: 1000000
+    prioritized: true
+    alpha: 0.6
+    beta: 0.4
+    beta_increment: 0.001
+    
+    sampling_strategy: "prioritized"  # Options: uniform, prioritized, weighted
+  
+  # Reward shaping
+  reward_shaping:
+    enabled: true
+    reward_scale: 1.0
+    discount_factor: 0.99
+    
+    reward_components:
+      - "task_completion"
+      - "efficiency"
+      - "safety"
+      - "novelty"
+    
+    weights:
+      task_completion: 0.5
+      efficiency: 0.2
+      safety: 0.2
+      novelty: 0.1
+  
+  # Exploration strategy
+  exploration:
+    strategy: "epsilon_greedy"  # Options: epsilon_greedy, boltzmann, random, intrinsic_motivation
+    epsilon_start: 1.0
+    epsilon_end: 0.01
+    epsilon_decay: 0.995
+    
+    intrinsic_motivation:
+      enabled: false
+      curiosity_weight: 0.1
+      novelty_bonus: true
+  
+  # Policy configuration
+  policy:
+    network: "mlp"  # Options: mlp, cnn, lstm, transformer
+    hidden_layers: [256, 256]
+    activation: "relu"  # Options: relu, tanh, sigmoid, elu, selu
+    use_batch_norm: false
+    use_dropout: false
+    dropout_rate: 0.1
+  
+  # Value function
+  value_function:
+    network: "mlp"
+    hidden_layers: [256, 256]
+    activation: "relu"
+    use_gae: true
+  
+  # Multi-agent RL
+  multi_agent:
+    enabled: false
+    algorithm: "maddpg"  # Options: maddpg, qmix, vdn
+    n_agents: 2
+    shared_parameters: true
+
+# =========================
+# SUPERVISED LEARNING
+# =========================
+
+supervised:
+  # Master enable
+  enabled: true
+  
+  # Model architectures
+  architectures:
+    classification:
+      type: "neural_network"
+      input_size: null  # Auto-detected
+      hidden_layers: [512, 256, 128]
+      output_size: null  # Auto-detected
+      activation: "relu"
+      dropout_rate: 0.2
+      batch_norm: true
+    
+    regression:
+      type: "neural_network"
+      input_size: null
+      hidden_layers: [256, 128, 64]
+      output_size: 1
+      activation: "relu"
+      output_activation: "linear"
+    
+    transformer:
+      type: "transformer"
+      n_heads: 8
+      n_layers: 6
+      d_model: 512
+      d_ff: 2048
+      dropout: 0.1
+  
+  # Training parameters
+  training:
+    optimizer: "adam"  # Options: adam, sgd, rmsprop, adamw, adamax
+    learning_rate: 0.001
+    learning_rate_schedule: "cosine"  # Options: constant, step, exponential, cosine, warmup
+    
+    loss_function: "cross_entropy"  # Options: cross_entropy, mse, mae, huber, focal
+    gradient_clipping: true
+    max_gradient_norm: 1.0
+    
+    regularization:
+      l1_regularization: 0.0
+      l2_regularization: 0.0001
+      dropout_rate: 0.2
+  
+  # Data augmentation
+  augmentation:
+    enabled: true
+    techniques:
+      - "random_rotation"
+      - "random_flip"
+      - "random_zoom"
+      - "random_brightness"
+      - "random_contrast"
+    
+    parameters:
+      rotation_range: 20
+      horizontal_flip: true
+      vertical_flip: false
+      zoom_range: 0.1
+      brightness_range: [0.8, 1.2]
+      contrast_range: [0.8, 1.2]
+  
+  # Transfer learning
+  transfer_learning:
+    enabled: false
+    pretrained_model: null
+    freeze_layers: true
+    freeze_until: "last_3"
+    fine_tune_epochs: 10
+
+# =========================
+# UNSUPERVISED LEARNING
+# =========================
+
+unsupervised:
+  # Master enable
+  enabled: true
+  
+  # Clustering
+  clustering:
+    algorithm: "kmeans"  # Options: kmeans, dbscan, hierarchical, gaussian_mixture
+    n_clusters: 10
+    max_iterations: 300
+    tolerance: 0.0001
+    
+    algorithms_config:
+      kmeans:
+        init: "k-means++"
+        n_init: 10
+      
+      dbscan:
+        eps: 0.5
+        min_samples: 5
+        metric: "euclidean"
+      
+      hierarchical:
+        linkage: "ward"  # Options: ward, complete, average, single
+        distance_threshold: 0.5
+        compute_full_tree: "auto"
+      
+      gaussian_mixture:
+        covariance_type: "full"  # Options: full, tied, diag, spherical
+        max_iter: 100
+        n_init: 1
+  
+  # Dimensionality reduction
+  dimensionality_reduction:
+    algorithm: "pca"  # Options: pca, tsne, umap, autoencoder
+    n_components: 2
+    random_state: 42
+    
+    algorithms_config:
+      pca:
+        svd_solver: "auto"
+        whiten: false
+      
+      tsne:
+        perplexity: 30
+        early_exaggeration: 12
+        learning_rate: 200
+        n_iter: 1000
+      
+      umap:
+        n_neighbors: 15
+        min_dist: 0.1
+        metric: "euclidean"
+      
+      autoencoder:
+        encoding_dim: 32
+        hidden_layers: [128, 64]
+        activation: "relu"
+  
+  # Anomaly detection
+  anomaly_detection:
+    algorithm: "isolation_forest"  # Options: isolation_forest, one_class_svm, autoencoder
+    contamination: 0.1
+    random_state: 42
+    
+    algorithms_config:
+      isolation_forest:
+        n_estimators: 100
+        max_samples: "auto"
+        bootstrap: false
+      
+      one_class_svm:
+        kernel: "rbf"
+        nu: 0.5
+        gamma: "auto"
+      
+      autoencoder:
+        hidden_layers: [64, 32, 64]
+        reconstruction_error_threshold: 0.1
+  
+  # Feature learning
+  feature_learning:
+    enabled: true
+    algorithm: "autoencoder"
+    n_features: 64
+    sparsity_penalty: 0.001
+    denoising: false
+    noise_factor: 0.1
+
+# =========================
+# FEEDBACK LOOP
+# =========================
+
+feedback_loop:
+  # Master enable
+  enabled: true
+  
+  # Feedback configuration
+  feedback_window: 100  # Number of feedback items to consider
+  significance_threshold: 0.5  # Minimum significance to act on feedback
+  feedback_timeout: 3600  # Seconds until feedback expires
+  
+  # Feedback types
+  types:
+    explicit:  # Direct user feedback
+      enabled: true
+      weight: 0.4
+      min_samples: 10
+    
+    implicit:  # Inferred from behavior
+      enabled: true
+      weight: 0.3
+      confidence_threshold: 0.7
+    
+    reward:  # Reward signals
+      enabled: true
+      weight: 0.2
+    
+    punishment:  # Punishment signals
+      enabled: true
+      weight: 0.1
+  
+  # Feedback processing
+  processing:
+    aggregation: "weighted_average"  # Options: average, weighted_average, median, mode
+    outlier_removal: true
+    outlier_threshold: 2.0  # Standard deviations
+    
+    temporal_weighting:
+      enabled: true
+      decay_rate: 0.1  # Exponential decay
+  
+  # Feedback sources
+  sources:
+    - "user_ratings"
+    - "task_completion"
+    - "error_correction"
+    - "time_to_complete"
+    - "resource_usage"
+    - "user_satisfaction"
+  
+  # Feedback integration
+  integration:
+    update_model: true
+    update_policy: true
+    update_strategy: "online"  # Options: online, batch, hybrid
+    
+    min_feedback_for_update: 10
+    batch_update_interval: 60  # Seconds
+  
+  # Feedback storage
+  storage:
+    max_history: 10000
+    retention_days: 30
+    export_feedback: true
+    feedback_analysis: true
+
+# =========================
+# KNOWLEDGE REFINEMENT
+# =========================
+
+knowledge_refiner:
+  # Master enable
+  enabled: true
+  
+  # Refinement schedule
+  refinement_interval: 3600  # Seconds (1 hour)
+  confidence_threshold: 0.7  # Minimum confidence to keep knowledge
+  max_knowledge_items: 10000  # Maximum knowledge items to store
+  
+  # Knowledge types
+  knowledge_types:
+    factual:
+      enabled: true
+      priority: 1
+      confidence_required: 0.8
+    
+    procedural:
+      enabled: true
+      priority: 2
+      confidence_required: 0.7
+    
+    relational:
+      enabled: true
+      priority: 3
+      confidence_required: 0.6
+    
+    temporal:
+      enabled: true
+      priority: 4
+      confidence_required: 0.5
+  
+  # Refinement operations
+  operations:
+    - name: "deduplication"
+      enabled: true
+      similarity_threshold: 0.95
+    
+    - name: "generalization"
+      enabled: true
+      min_support: 5
+      similarity_threshold: 0.8
+    
+    - name: "specialization"
+      enabled: true
+      conflict_threshold: 0.3
+    
+    - name: "consistency_checking"
+      enabled: true
+      check_contradictions: true
+      resolve_strategy: "confidence"  # Options: confidence, recency, manual
+    
+    - name: "importance_scoring"
+      enabled: true
+      factors:
+        - "usage_frequency"
+        - "recency"
+        - "source_authority"
+        - "confidence"
+  
+  # Knowledge validation
+  validation:
+    cross_validation: true
+    k_folds: 5
+    holdout_ratio: 0.2
+    
+    validation_metrics:
+      - "accuracy"
+      - "consistency"
+      - "completeness"
+      - "freshness"
+  
+  # Knowledge storage
+  storage:
+    backend: "database"  # Options: memory, database, hybrid
+    database_url: null
+    cache_size: 1000
+    enable_versioning: true
+  
+  # Knowledge export
+  export:
+    enabled: true
+    format: "json"  # Options: json, yaml, rdf, graphml
+    export_path: "knowledge_base/exports"
+    auto_export_interval: 86400  # 24 hours
+
+# =========================
+# ONLINE LEARNING
+# =========================
+
+online_learning:
+  # Master enable
+  enabled: true
+  
+  # Batch processing
+  batch_size: 32
+  max_batch_size: 256
+  epochs: 10
+  validation_split: 0.1
+  
+  # Early stopping
+  early_stopping: true
+  early_stopping_patience: 5  # Epochs without improvement
+  early_stopping_min_delta: 0.001
+  
+  # Learning rate adaptation
+  learning_rate_adaptation:
+    enabled: true
+    strategy: "reduce_on_plateau"  # Options: constant, reduce_on_plateau, cyclical, warmup
+    factor: 0.5
+    patience: 3
+    min_lr: 0.00001
+  
+  # Online algorithms
+  algorithms:
+    incremental:
+      enabled: true
+      algorithm: "sgd"  # Options: sgd, passive_aggressive, perceptron
+      learning_rate: 0.01
+    
+    streaming:
+      enabled: true
+      algorithm: "hoeffding_tree"  # Options: hoeffding_tree, streaming_kmeans
+      max_size: 10000
+    
+    active:
+      enabled: true
+      query_strategy: "uncertainty_sampling"  # Options: uncertainty, random, diversity
+      query_budget: 0.1  # Percentage of samples to query
+  
+  # Model updates
+  updates:
+    strategy: "incremental"  # Options: batch, incremental, hybrid
+    update_interval: 60  # Seconds
+    min_samples_for_update: 100
+    
+    partial_fit: true
+    warm_start: true
+  
+  # Forgetting mechanism
+  forgetting:
+    enabled: true
+    strategy: "sliding_window"  # Options: sliding_window, decay, recency
+    window_size: 10000
+    decay_rate: 0.01
+    recency_weight: 0.5
+  
+  # Concept drift detection
+  concept_drift:
+    enabled: true
+    algorithm: "ddm"  # Options: ddm, eddm, adwin, cusum
+    warning_threshold: 0.95
+    drift_threshold: 0.8
+    
+    adaptation:
+      strategy: "reset"  # Options: reset, adapt, ensemble
+      reset_after_drift: true
+
+# =========================
+# MODEL TRAINING
+# =========================
+
+training:
+  # Master enable
+  enabled: true
+  
+  # Optimizer
+  optimizer: "adam"  # Options: adam, sgd, rmsprop, adamw, adamax, nadam
+  loss_function: "cross_entropy"  # Options: cross_entropy, mse, mae, huber, focal
+  
+  # Optimizer parameters
+  optimizer_params:
+    adam:
+      learning_rate: 0.001
+      beta1: 0.9
+      beta2: 0.999
+      epsilon: 1e-8
+      weight_decay: 0
+    
+    sgd:
+      learning_rate: 0.01
+      momentum: 0.9
+      nesterov: true
+      weight_decay: 0
+    
+    rmsprop:
+      learning_rate: 0.001
+      alpha: 0.99
+      momentum: 0.0
+      weight_decay: 0
+  
+  # Gradient handling
+  gradient_clipping: true
+  max_gradient_norm: 1.0
+  gradient_accumulation_steps: 1
+  
+  # Loss weighting
+  loss_weights:
+    enabled: false
+    weights: {}  # Class or task weights
+  
+  # Training loop
+  training_loop:
+    max_epochs: 100
+    max_time_seconds: 86400  # 24 hours
+    checkpoint_interval: 10  # Epochs
+    save_best_model: true
+    save_last_model: true
+  
+  # Validation
+  validation:
+    enabled: true
+    validation_frequency: 1  # Epochs
+    validation_metrics: ["loss", "accuracy"]
+    early_stopping_metric: "val_loss"
+    early_stopping_mode: "min"  # Options: min, max
+  
+  # Callbacks
+  callbacks:
+    - name: "model_checkpoint"
+      enabled: true
+      monitor: "val_loss"
+      save_best_only: true
+    
+    - name: "early_stopping"
+      enabled: true
+      monitor: "val_loss"
+      patience: 10
+    
+    - name: "learning_rate_scheduler"
+      enabled: true
+      schedule: "reduce_on_plateau"
+      factor: 0.5
+      patience: 5
+    
+    - name: "tensorboard"
+      enabled: false
+      log_dir: "logs/tensorboard"
+    
+    - name: "wandb"
+      enabled: false
+      project: "ediath_learning"
+      entity: null
+  
+  # Hyperparameter optimization
+  hyperparameter_optimization:
+    enabled: false
+    algorithm: "bayesian"  # Options: grid, random, bayesian, genetic
+    max_trials: 100
+    cross_validation_folds: 5
+    
+    search_space:
+      learning_rate: [0.0001, 0.01]
+      batch_size: [16, 32, 64, 128]
+      hidden_layers: [[64, 32], [128, 64], [256, 128]]
+
+# =========================
+# EVALUATION
+# =========================
+
+evaluation:
+  # Master enable
+  enabled: true
+  
+  # Evaluation metrics
+  metrics:
+    classification:
+      - "accuracy"
+      - "precision"
+      - "recall"
+      - "f1_score"
+      - "roc_auc"
+      - "confusion_matrix"
+    
+    regression:
+      - "mse"
+      - "mae"
+      - "r2_score"
+      - "explained_variance"
+    
+    clustering:
+      - "silhouette_score"
+      - "calinski_harabasz_score"
+      - "davies_bouldin_score"
+    
+    reinforcement:
+      - "cumulative_reward"
+      - "episode_length"
+      - "success_rate"
+      - "average_return"
+  
+  # Evaluation schedule
+  evaluation_interval: 100  # Steps or episodes
+  evaluation_epochs: 1
+  
+  # Test set
+  test_split: 0.2
+  validation_split: 0.1
+  shuffle_data: true
+  stratified_sampling: true
+  
+  # Cross-validation
+  cross_validation:
+    enabled: false
+    folds: 5
+    stratified: true
+    shuffle: true
+    random_state: 42
+  
+  # Performance thresholds
+  thresholds:
+    min_accuracy: 0.7
+    min_precision: 0.7
+    min_recall: 0.7
+    min_f1: 0.7
+  
+  # Model comparison
+  model_comparison:
+    enabled: true
+    compare_on_metrics: ["accuracy", "f1_score"]
+    baseline_model: "random_forest"
+  
+  # Evaluation storage
+  storage:
+    save_predictions: true
+    save_metrics_history: true
+    results_dir: "evaluation_results"
+    max_results: 100
+
+# =========================
+# CONTINUAL LEARNING
+# =========================
+
+continual_learning:
+  # Master enable
+  enabled: true
+  
+  # Strategies
+  strategies:
+    - "elastic_weight_consolidation"  # EWC
+    - "synaptic_intelligence"
+    - "memory_replay"
+    - "progressive_neural_networks"
+  
+  # Elastic Weight Consolidation (EWC)
+  ewc:
+    enabled: true
+    lambda: 0.1  # Regularization strength
+    fisher_sample_size: 1000
+  
+  # Synaptic Intelligence
+  si:
+    enabled: false
+    lambda: 1.0
+    epsilon: 0.1
+  
+  # Memory replay
+  memory_replay:
+    enabled: true
+    replay_buffer_size: 10000
+    replay_batch_size: 32
+    replay_frequency: 10
+    sampling_strategy: "uniform"  # Options: uniform, prioritized
+  
+  # Progressive networks
+  progressive:
+    enabled: false
+    max_columns: 10
+    lateral_connections: true
+  
+  # Catastrophic forgetting prevention
+  forgetting_prevention:
+    enabled: true
+    importance_threshold: 0.1
+    consolidation_interval: 1000  # Steps
+
+# =========================
+# TRANSFER LEARNING
+# =========================
+
+transfer_learning:
+  # Master enable
+  enabled: false
+  
+  # Source domains
+  source_domains: []
+  source_models: []
+  
+  # Fine-tuning
+  fine_tuning:
+    enabled: true
+    freeze_base_layers: true
+    freeze_until: "last_3"
+    fine_tune_learning_rate: 0.0001
+    fine_tune_epochs: 10
+  
+  # Feature extraction
+  feature_extraction:
+    enabled: true
+    use_pretrained_features: true
+    feature_layer: "penultimate"
+  
+  # Domain adaptation
+  domain_adaptation:
+    enabled: false
+    algorithm: "coral"  # Options: coral, dann, adabn
+    adaptation_strength: 0.1
+
+# =========================
+# MODEL PERSISTENCE
+# =========================
+
+persistence:
+  # Storage configuration
+  storage:
+    model_dir: "models/learning"
+    checkpoint_dir: "models/checkpoints"
+    auto_save: true
+    save_interval_seconds: 300  # 5 minutes
+    
+    retention:
+      max_models: 10
+      max_checkpoints: 20
+      delete_old_models: true
+      retention_days: 30
+  
+  # Model versioning
+  versioning:
+    enabled: true
+    version_format: "semantic"  # Options: semantic, timestamp, hash
+    auto_increment: true
+  
+  # Export formats
+  export_formats:
+    - "pytorch"
+    - "tensorflow"
+    - "onnx"
+    - "joblib"
+  
+  # Model compression
+  compression:
+    enabled: false
+    quantization: false
+    pruning: false
+    distillation: false
+
+# =========================
+# MONITORING & METRICS
+# =========================
+
+monitoring:
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: 10  # Seconds
+    
+    metrics_to_collect:
+      - "training_loss"
+      - "validation_loss"
+      - "learning_rate"
+      - "gradient_norm"
+      - "parameter_norm"
+      - "epoch_time"
+      - "throughput_samples_per_second"
+  
+  # Dashboard
+  dashboard:
+    enabled: true
+    update_interval: 1  # Second
+    port: 8050
+    host: "localhost"
+  
+  # Logging
+  logging:
+    level: "info"
+    log_file: "logs/learning.log"
+    log_training_details: true
+    log_metrics: true
+    log_format: "json"  # Options: text, json
+  
+  # Alerting
+  alerts:
+    enabled: true
+    conditions:
+      - metric: "validation_loss"
+        threshold: 5.0
+        condition: "greater_than"
+      
+      - metric: "training_time"
+        threshold: 3600
+        condition: "greater_than"
+      
+      - metric: "gradient_norm"
+        threshold: 10.0
+        condition: "greater_than"
+
+# =========================
+# DEBUG AND PROFILING
+# =========================
+
+debug:
+  # Debug mode
+  enabled: false
+  
+  # Verbose logging
+  verbose: false
+  
+  # Gradient checking
+  gradient_checking: false
+  
+  # Model profiling
+  profiling:
+    enabled: false
+    profile_steps: 100
+    save_profile: true
+    profile_dir: "profiles/learning"
+  
+  # Debug visualizations
+  visualizations:
+    enabled: false
+    plot_loss_curves: true
+    plot_confusion_matrix: true
+    plot_feature_importance: true
+    save_figures: true
+  
+  # Step-by-step debugging
+  step_mode: false
+  
+  # TensorBoard integration
+  tensorboard:
+    enabled: false
+    log_dir: "logs/tensorboard"
+    flush_secs: 120
+  
+  # Profiling tools
+  profilers:
+    - "cProfile"
+    - "memory_profiler"
+    - "line_profiler"

@@ -1,0 +1,173 @@
+
+# EDIATH Core Dependencies
+
+
+# Deep Learning / ML - Zero-Crash CPU pins (low RAM)
+torch==2.0.1+cpu --index-url https://download.pytorch.org/whl/cpu
+torchvision==0.15.2+cpu --index-url https://download.pytorch.org/whl/cpu
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+langchain>=0.1.0
+openai>=1.0.0
+anthropic>=0.18.0
+
+# LLM / GGUF
+llama-cpp-python==0.2.82
+llama-cpp-python[server]==0.2.82
+
+# Vector Search / RAG
+chromadb>=0.4.0
+qdrant-client>=1.7.0
+faiss-cpu>=1.7.4
+rank-bm25>=0.2.2
+
+
+# Audio / Speech
+
+PyAudio>=0.2.11
+librosa>=0.10.0
+sounddevice>=0.4.6
+pyttsx3>=2.90
+SpeechRecognition>=3.10.0
+webrtcvad>=2.0.10
+whisper>=1.1.10
+pydub>=0.25.1
+
+
+# Web / Scraping / Network
+
+selenium>=4.15.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+playwright>=1.40.0
+aiohttp>=3.9.0
+aiofiles>=23.2.0
+websocket-client>=1.6.0
+aioimaplib>=1.0.1
+
+
+# Computer Vision / Images
+
+opencv-python>=4.8.0
+Pillow>=10.0.0
+numpy>=1.24.0
+scipy>=1.11.0
+scikit-learn>=1.3.0
+face-recognition>=1.3.0
+gputil>=1.4.0
+
+
+# UI / System
+
+kivy>=2.1.0
+kivy[full]>=2.1.0
+psutil>=5.9.0
+gputil>=1.4.0
+pyperclip>=1.8.2
+plyer>=2.1.0
+
+
+# Databases
+
+sqlalchemy>=2.0.0
+pymongo>=4.5.0
+redis>=5.0.0
+asyncpg>=0.29.0
+aiomysql>=0.2.0
+aiosqlite>=0.19.0
+motor>=3.3.0
+
+
+# Config / Validation
+
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+PyYAML>=6.0
+python-dotenv>=1.0.0
+attrs>=23.1.0
+email-validator>=2.1.0
+
+
+# Logging / Utils
+
+loguru>=0.7.0
+tenacity>=8.2.0
+tqdm>=4.66.0
+psutil>=5.9.0
+python-dateutil>=2.8.2
+pytz>=2023.3
+croniter>=2.0.0
+python-telegram-bot>=20.0
+twilio>=8.10.0
+
+
+# NLP / Text Processing
+
+nltk>=3.8.0
+textblob>=0.17.0
+spacy>=3.7.0
+textstat>=0.7.0
+language-tool-python>=2.7.0
+jieba>=0.42.1
+snowballstemmer>=2.2.0
+
+
+# Email / Notifications
+
+python-gmail>=0.6.0
+imapclient>=3.0.0
+python-telegram-bot>=20.0
+discord-webhook>=1.3.0
+slack-sdk>=3.27.0
+
+
+# Math / Scientific
+
+sympy>=1.12
+matplotlib>=3.7.0
+pandas>=2.0.0
+statsmodels>=0.14.0
+
+
+# Security / Cryptography
+
+cryptography>=41.0.0
+PyJWT>=2.8.0
+bcrypt>=4.1.0
+passlib>=1.7.4
+python-jose>=3.3.0
+oauthlib>=3.2.0
+
+
+# Calendar / Scheduling
+
+icalendar>=5.0.0
+dateparser>=1.2.0
+tzdata>=2023.3
+zoneinfo>=0.2.0
+
+
+# Code Execution (Sandbox)
+
+RestrictedPython>=6.0
+docker>=6.1.0
+
+
+# Development / Testing
+
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.11.0
+flake8>=6.1.0
+mypy>=1.7.0
+pre-commit>=3.5.0
+
+# Web UI
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+
+
+# Windows Specific (Optional)
+
+# pywin32>=306  # Uncomment for Windows-specific features
+# wmi>=1.5.1    # Windows Management Instrumentation

@@ -1,0 +1,81 @@
+# EDIATH Orchestrator Configuration
+# Version: 1.0.0
+
+# Core Settings
+name: EDIATH_Orchestrator
+version: 1.0.0
+environment: production
+config_dir: config
+data_dir: data
+log_dir: logs
+workspace_dir: workspace
+generated_projects_dir: generated_projects
+reports_dir: research
+
+# Communication & Coordination
+communication_protocol: DIRECT
+coordination_strategy: HIERARCHICAL
+task_allocation_strategy: CAPABILITY_BASED
+circuit_breaker_threshold: 5
+max_retries: 3
+retry_delay_sec: 5
+recovery_timeout_sec: 30
+health_check_interval_sec: 30
+tick_interval_ms: 100
+state_persist_interval_sec: 300
+
+# Agent Enable/Disable Flags
+enable_multi_agent: true
+enable_autonomous_mode: true
+enable_learning: true
+enable_memory: true
+enable_metrics: true
+enable_persistence: true
+enable_security: true
+enable_vision: true
+enable_audio: true
+enable_alerts: true
+
+# Specific Agents
+enable_automation_agent: true
+enable_blender_agent: true
+enable_browser_agent: true
+enable_calc_agent: true
+enable_calendar_agent: true
+enable_code_execution_agent: true
+enable_critic_agent: true
+enable_database_agent: true
+enable_email_agent: true
+enable_file_agent: true
+enable_fitness_agent: true
+enable_knowledge_base_agent: true
+enable_maths_reasoning_agent: true
+enable_network_agent: true
+enable_nlp_agent: true
+enable_notification_agent: true
+enable_retrieval_agent: true
+enable_scheduler_agent: true
+enable_search_agent: true
+enable_security_agent: true
+enable_shell_agent: true
+enable_speech_agent: true
+enable_system_control_agent: true
+enable_translation_agent: true
+enable_vision_agent: true
+
+# LLM Configuration
+llm_model_path: models/EDIATH-q4_k_m.gguf
+
+# MongoDB Configuration
+enable_mongo_persistence: true
+mongo_state_collection: orchestrator_state
+mongo_events_collection: orchestrator_events
+mongo_metrics_collection: orchestrator_metrics
+
+# Blender Configuration
+blender_workspace_dir: workspace/blender
+blender_render_dir: generated_projects/blender_renders
+blender_export_format: fbx
+
+# Performance Settings
+metrics_flush_interval_sec: 60

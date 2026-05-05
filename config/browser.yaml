@@ -1,0 +1,1012 @@
+# Browser and Web Automation Configuration
+# Version: 2.0.0
+# Last Updated: 2026-04-22
+
+# =========================
+# GLOBAL BROWSER SETTINGS
+# =========================
+
+browser:
+  # Master enable/disable
+  enabled: true
+  
+  # Browser selection
+  driver: "chrome"  # Options: chrome, firefox, safari, edge, brave, chromium
+  
+  # Browser profiles
+  profiles:
+    default: "standard"
+    profiles_dir: "browser_profiles"
+    
+    available_profiles:
+      standard:
+        headless: false
+        window_size: [1920, 1080]
+        user_agent: "standard"
+      
+      headless:
+        headless: true
+        window_size: [1920, 1080]
+        user_agent: "standard"
+      
+      mobile:
+        headless: false
+        window_size: [375, 667]
+        user_agent: "mobile"
+        emulate_device: "iPhone 12"
+      
+      stealth:
+        headless: true
+        window_size: [1366, 768]
+        user_agent: "random"
+        stealth_mode: true
+        fingerprint_randomization: true
+
+# =========================
+# BROWSER INSTANCE SETTINGS
+# =========================
+
+instance:
+  # Basic settings
+  headless: false
+  window_size:
+    width: 1920
+    height: 1080
+  
+  window_position:
+    x: 0
+    y: 0
+  
+  # Window management
+  window_management:
+    maximize_on_start: false
+    minimize_on_start: false
+    fullscreen: false
+    always_on_top: false
+    keep_alive: true
+  
+  # Tab management
+  tabs:
+    max_tabs: 20
+    auto_close_inactive_seconds: 300
+    tab_timeout_seconds: 600
+    reuse_tabs: true
+  
+  # Incognito/Private mode
+  incognito: false
+  clear_on_close: false
+  
+  # User data
+  user_data_dir: null  # Auto-detect if null
+  profile_name: "Default"
+  persist_session: true
+  session_save_interval_seconds: 30
+
+# =========================
+# CHROME-SPECIFIC SETTINGS
+# =========================
+
+chrome:
+  # Binary and executable
+  binary_path: null  # Auto-detect if null
+  chromedriver_path: null  # Auto-detect if null
+  chromedriver_version: "latest"
+  
+  # User data
+  user_data_dir: null
+  profile_directory: "Default"
+  
+  # Command line arguments
+  arguments:
+    # Performance
+    - "--disable-gpu"
+    - "--disable-software-rasterizer"
+    - "--disable-dev-shm-usage"
+    - "--disable-accelerated-2d-canvas"
+    - "--disable-accelerated-jpeg-decoding"
+    - "--disable-accelerated-mjpeg-decode"
+    - "--disable-accelerated-video-decode"
+    
+    # Memory
+    - "--disable-setuid-sandbox"
+    - "--no-sandbox"
+    - "--max_old_space_size=4096"
+    
+    # Security (disable for automation)
+    - "--disable-web-security"
+    - "--disable-features=VizDisplayCompositor"
+    - "--disable-blink-features=AutomationControlled"
+    
+    # Logging
+    - "--disable-logging"
+    - "--log-level=3"
+    - "--silent"
+    
+    # Features
+    - "--disable-extensions"
+    - "--disable-popup-blocking"
+    - "--disable-notifications"
+    - "--disable-default-apps"
+    - "--disable-sync"
+    - "--disable-background-networking"
+    - "--disable-background-timer-throttling"
+    - "--disable-backgrounding-occluded-windows"
+    - "--disable-breakpad"
+    - "--disable-client-side-phishing-detection"
+    - "--disable-component-extensions-with-background-pages"
+    - "--disable-component-update"
+    - "--disable-domain-reliability"
+    - "--disable-features=AudioServiceOutOfProcess"
+    - "--disable-hang-monitor"
+    - "--disable-ipc-flooding-protection"
+    - "--disable-prompt-on-repost"
+    - "--disable-renderer-backgrounding"
+    - "--disable-speech-api"
+    - "--disable-sync-preferences"
+    - "--disable-translate"
+    
+    # Experimental
+    - "--enable-features=NetworkService,NetworkServiceInProcess"
+    - "--force-color-profile=srgb"
+    - "--ignore-certificate-errors"
+    - "--ignore-ssl-errors"
+    - "--allow-running-insecure-content"
+    - "--allow-insecure-localhost"
+  
+  # Experimental options
+  experimental_options:
+    excludeSwitches: ["enable-automation", "enable-logging"]
+    useAutomationExtension: false
+    prefs:
+      credentials_enable_service: false
+      profile.password_manager_enabled: false
+      profile.default_content_setting_values.notifications: 2
+      profile.default_content_setting_values.popups: 2
+      profile.default_content_setting_values.images: 1
+      profile.default_content_setting_values.javascript: 1
+      profile.default_content_setting_values.plugins: 1
+  
+  # Mobile emulation
+  mobile_emulation:
+    enabled: false
+    device_name: "iPhone 12"  # Options: iPhone X, Pixel 5, iPad Pro
+    device_metrics:
+      width: 375
+      height: 812
+      pixel_ratio: 3.0
+      touch: true
+    
+    user_agent: null  # Auto-set based on device
+  
+  # Performance logging
+  performance_logging:
+    enabled: false
+    log_interval_seconds: 10
+    trace_categories: ["devtools.timeline", "v8.execute"]
+  
+  # Debugging
+  debugging:
+    remote_debugging_port: null  # Set to enable remote debugging
+    devtools: false
+    verbose_logging: false
+
+# =========================
+# FIREFOX-SPECIFIC SETTINGS
+# =========================
+
+firefox:
+  # Binary and executable
+  binary_path: null  # Auto-detect if null
+  geckodriver_path: null  # Auto-detect if null
+  geckodriver_version: "latest"
+  
+  # Profile management
+  profile_name: "default"
+  profile_path: null
+  
+  # Firefox preferences
+  preferences:
+    # Performance
+    "browser.cache.disk.enable": false
+    "browser.cache.memory.enable": false
+    "browser.sessionhistory.max_entries": 5
+    "browser.sessionstore.max_tabs_undo": 0
+    "browser.sessionstore.max_windows_undo": 0
+    "browser.sessionstore.resume_from_crash": false
+    "browser.sessionstore.restore_on_demand": false
+    "browser.sessionstore.restore_tabs_lazily": false
+    
+    # Security
+    "security.fileuri.strict_origin_policy": false
+    "security.sandbox.content.level": 0
+    "webdriver.log.file": "/dev/null"
+    "webdriver.log.level": "fatal"
+    
+    # Notifications
+    "dom.webnotifications.enabled": false
+    "dom.push.enabled": false
+    "permissions.default.desktop-notification": 2
+    
+    # Popups
+    "dom.disable_open_during_load": false
+    "dom.popup_maximum": 0
+    
+    # Media
+    "media.autoplay.default": 0  # 0=Allow all, 1=Block, 2=Prompt
+    "media.autoplay.blocking_policy": 0
+    "media.autoplay.enabled": true
+    
+    # Privacy
+    "privacy.trackingprotection.enabled": false
+    "privacy.trackingprotection.pbmode.enabled": false
+    
+    # Automation
+    "remote.active-protocols": 1
+    "toolkit.telemetry.enabled": false
+    "toolkit.telemetry.rejected": true
+  
+  # Arguments
+  arguments:
+    - "-headless"
+    - "-safe-mode"
+    - "-devtools"
+    - "-private"
+  
+  # Logging
+  log_path: null
+  log_level: "fatal"  # Options: fatal, error, warn, info, config, debug, trace
+
+# =========================
+# EDGE/CHROMIUM SETTINGS
+# =========================
+
+edge:
+  # Binary and executable
+  binary_path: null
+  edgedriver_path: null
+  
+  # Chromium-based arguments (same as Chrome)
+  arguments: []
+  
+  # Edge-specific options
+  options:
+    use_chromium: true
+    guest_mode: false
+    in_private: false
+
+brave:
+  # Binary and executable
+  binary_path: null
+  chromedriver_path: null
+  
+  # Brave-specific settings
+  use_brave_rewards: false
+  use_brave_wallet: false
+  use_brave_news: false
+  use_brave_ads: false
+
+# =========================
+# TIMEOUTS AND WAITS
+# =========================
+
+timeouts:
+  # Page loading
+  page_load: 30  # Seconds
+  implicit_wait: 10  # Seconds
+  script_execution: 30  # Seconds
+  
+  # Element waits
+  element:
+    presence: 10  # Seconds
+    visible: 10  # Seconds
+    clickable: 10  # Seconds
+    enabled: 10  # Seconds
+    stale: 5  # Seconds
+  
+  # Navigation
+  navigation: 30  # Seconds
+  redirect: 30  # Seconds
+  reload: 30  # Seconds
+  
+  # JavaScript
+  async_script: 30  # Seconds
+  frame_load: 10  # Seconds
+  alert: 5  # Seconds
+  
+  # Downloads
+  download: 60  # Seconds
+  file_chooser: 10  # Seconds
+  
+  # Connection
+  connection_timeout: 30  # Seconds
+  socket_timeout: 30  # Seconds
+  keep_alive: true
+  
+  # Retry settings
+  retry:
+    max_attempts: 3
+    initial_delay_ms: 1000
+    max_delay_ms: 10000
+    backoff_multiplier: 2.0
+
+# =========================
+# PERFORMANCE OPTIMIZATION
+# =========================
+
+performance:
+  # Caching
+  cache:
+    enabled: true
+    cache_dir: "browser_cache"
+    max_size_mb: 500
+    clear_on_shutdown: false
+    
+    types:
+      - "page_cache"
+      - "image_cache"
+      - "resource_cache"
+  
+  # Resource loading
+  resources:
+    images_enabled: true
+    javascript_enabled: true
+    css_enabled: true
+    fonts_enabled: true
+    media_enabled: true
+    webgl_enabled: false
+    webrtc_enabled: false
+    
+    # Block certain resource types
+    block_resources:
+      - "stylesheet"  # Block CSS
+      - "image"       # Block images
+      - "media"       # Block audio/video
+      - "font"        # Block fonts
+      - "script"      # Block JavaScript
+  
+  # Page optimization
+  optimization:
+    lazy_load_images: true
+    defer_scripts: true
+    preload_links: false
+    parallel_loading: true
+    
+    # Critical rendering path
+    critical_css_inline: false
+    async_css: true
+    async_js: true
+  
+  # Network optimization
+  network:
+    enable_http2: true
+    enable_compression: true
+    max_connections: 10
+    max_connections_per_host: 6
+    
+    throttling:
+      enabled: false
+      download_speed_mbps: 10
+      upload_speed_mbps: 5
+      latency_ms: 50
+  
+  # Browser process optimization
+  process:
+    single_process: false
+    process_per_site: false
+    renderer_process_limit: 4
+    worker_process_limit: 2
+    
+    memory:
+      max_heap_size_mb: 2048
+      garbage_collection_interval: 300  # Seconds
+
+# =========================
+# NAVIGATION SETTINGS
+# =========================
+
+navigation:
+  # User agent
+  user_agent:
+    default: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36"
+    randomize: false
+    rotate_on_request: false
+    custom_agents: []
+  
+  # Security
+  accept_ssl_errors: true
+  ignore_certificate_errors: true
+  follow_redirects: true
+  allow_insecure_content: false
+  
+  # Navigation behavior
+  behavior:
+    back_forward_cache: true
+    page_transition: "auto"
+    wait_for_load: "network_idle"  # Options: load, domcontentloaded, network_idle
+    wait_for_network_idle_timeout: 2  # Seconds
+    
+    # Page lifecycle
+    unload_handlers: "ignore"  # Options: ignore, wait, timeout
+    before_unload: "accept"  # Options: accept, decline, ignore
+  
+  # Referrer policy
+  referrer_policy: "strict-origin-when-cross-origin"
+  
+  # Cross-origin
+  cross_origin:
+    allow_shared_array_buffer: false
+    allow_cross_origin_isolated: false
+  
+  # Popups and windows
+  popups:
+    block: true
+    allow_self_opens: true
+    new_window_strategy: "new_tab"  # Options: new_tab, new_window, same_tab
+  
+  # Downloads
+  downloads:
+    enabled: true
+    download_dir: "downloads"
+    auto_download: false
+    prompt_for_download: false
+    allowed_mime_types: []
+    blocked_mime_types: ["application/x-executable", "application/x-msdownload"]
+
+# =========================
+# PROXY SETTINGS
+# =========================
+
+proxy:
+  # Master enable
+  enabled: false
+  
+  # Proxy configuration
+  server:
+    host: null
+    port: null
+    protocol: "http"  # Options: http, https, socks4, socks5
+  
+  # Authentication
+  authentication:
+    enabled: false
+    username: null
+    password: null
+  
+  # Proxy rotation
+  rotation:
+    enabled: false
+    rotate_on_request: false
+    rotate_interval_seconds: 300
+    proxy_list: []
+    rotation_strategy: "round_robin"  # Options: round_robin, random, least_used
+  
+  # Proxy bypass
+  bypass:
+    enabled: true
+    bypass_list:
+      - "localhost"
+      - "127.0.0.1"
+      - "*.local"
+  
+  # Proxy types
+  types:
+    http:
+      enabled: true
+    https:
+      enabled: true
+    socks4:
+      enabled: false
+    socks5:
+      enabled: false
+  
+  # Proxy fallback
+  fallback:
+    enabled: true
+    fallback_to_direct: true
+    max_failures: 3
+    retry_interval_seconds: 10
+
+# =========================
+# STEALTH AND ANTI-DETECTION
+# =========================
+
+stealth:
+  # Master enable
+  enabled: false
+  
+  # Fingerprint randomization
+  fingerprint_randomization:
+    enabled: false
+    randomize_on_start: true
+    randomize_on_navigation: false
+    
+    properties_to_randomize:
+      - "user_agent"
+      - "platform"
+      - "languages"
+      - "screen_resolution"
+      - "timezone"
+      - "canvas"
+      - "webgl"
+      - "audio"
+      - "fonts"
+  
+  # WebDriver detection evasion
+  evasion:
+    remove_webdriver_property: true
+    remove_automation_indicators: true
+    override_navigator_properties: true
+    override_permissions: true
+    
+    # Specific evasions
+    hide_phantomjs: true
+    hide_selenium: true
+    hide_puppeteer: true
+    hide_playwright: true
+    
+    # Navigator overrides
+    navigator_overrides:
+      webdriver: false
+      automation: false
+      plugins: []
+      languages: ["en-US", "en"]
+      platform: "Win32"
+      hardware_concurrency: 8
+      device_memory: 8
+  
+  # Canvas fingerprinting
+  canvas:
+    enabled: true
+    noise_level: 0.1  # Add noise to canvas rendering
+    randomization: true
+  
+  # WebGL fingerprinting
+  webgl:
+    enabled: true
+    vendor: "Google Inc."
+    renderer: "ANGLE (Intel, Intel(R) UHD Graphics 630 (0x00009BC4) Direct3D11 vs_5_0 ps_5_0, D3D11)"
+    randomization: true
+  
+  # Audio fingerprinting
+  audio:
+    enabled: true
+    noise_level: 0.05
+    randomization: true
+  
+  # Font fingerprinting
+  fonts:
+    enabled: true
+    add_fake_fonts: true
+    font_list_randomization: true
+  
+  # Timezone and locale
+  timezone:
+    override: false
+    timezone_id: "America/New_York"
+    locale: "en-US"
+  
+  # IP and geolocation
+  geolocation:
+    override: false
+    latitude: 40.7128
+    longitude: -74.0060
+    accuracy: 100
+
+# =========================
+# ERROR HANDLING AND RETRIES
+# =========================
+
+error_handling:
+  # Exception handling
+  exceptions:
+    ignore_certificate_errors: true
+    ignore_connection_errors: false
+    ignore_timeout_errors: false
+    
+    retry_on_exceptions:
+      - "ConnectionError"
+      - "TimeoutException"
+      - "ElementNotInteractableException"
+      - "StaleElementReferenceException"
+      - "NoSuchElementException"
+      - "JavascriptException"
+  
+  # Page error handling
+  page_errors:
+    continue_on_404: true
+    continue_on_500: false
+    capture_console_errors: true
+    capture_network_errors: true
+    
+    error_pages:
+      enabled: false
+      custom_404_page: null
+      custom_500_page: null
+  
+  # Recovery strategies
+  recovery:
+    max_attempts: 3
+    recovery_actions:
+      - "refresh_page"
+      - "restart_browser"
+      - "clear_cache"
+      - "change_proxy"
+    
+    recovery_escalation:
+      level_1: "refresh_page"
+      level_2: "restart_browser"
+      level_3: "change_proxy"
+  
+  # Failure logging
+  logging:
+    log_all_errors: true
+    log_stack_traces: true
+    save_failure_screenshots: true
+    save_failure_html: true
+    failure_dir: "browser_failures"
+
+# =========================
+# SCREENSHOT AND RECORDING
+# =========================
+
+screenshot:
+  # Screenshot settings
+  enabled: true
+  default_format: "png"  # Options: png, jpeg, webp
+  default_quality: 80  # For JPEG/WebP (0-100)
+  
+  # Full page screenshots
+  full_page:
+    enabled: true
+    max_scroll_attempts: 50
+    scroll_delay_ms: 500
+  
+  # Element screenshots
+  element:
+    enabled: true
+    highlight_element: false
+    include_borders: true
+  
+  # Automatic screenshots
+  auto_screenshot:
+    enabled: false
+    on_navigation: true
+    on_error: true
+    on_timeout: true
+    max_auto_screenshots: 50
+  
+  # Storage
+  storage:
+    save_dir: "screenshots"
+    naming_pattern: "{page_title}_{timestamp}.{format}"
+    cleanup_days: 30
+
+recording:
+  # Video recording
+  enabled: false
+  format: "webm"  # Options: webm, mp4
+  quality: 80
+  framerate: 30
+  
+  # Recording triggers
+  triggers:
+    on_navigation: false
+    on_test_start: true
+    on_error: false
+  
+  # Recording limits
+  limits:
+    max_duration_seconds: 300
+    max_size_mb: 500
+  
+  # Storage
+  storage:
+    save_dir: "recordings"
+    naming_pattern: "recording_{timestamp}.{format}"
+    cleanup_days: 7
+
+# =========================
+# DOWNLOAD MANAGEMENT
+# =========================
+
+download:
+  # Download settings
+  enabled: true
+  download_dir: "downloads"
+  auto_download: false
+  prompt_for_download: false
+  
+  # File handling
+  file_handling:
+    overwrite_existing: false
+    create_unique_names: true
+    auto_extract_archives: false
+    virus_scan: false
+  
+  # Download limits
+  limits:
+    max_file_size_mb: 100
+    max_concurrent_downloads: 5
+    max_total_size_mb: 1000
+  
+  # Allowed/blocked types
+  allowed_types:
+    - "application/pdf"
+    - "image/*"
+    - "text/*"
+  
+  blocked_types:
+    - "application/x-executable"
+    - "application/x-msdownload"
+    - "application/java-archive"
+  
+  # Download timeout
+  timeout_seconds: 300
+  
+  # Retry on failure
+  retry:
+    max_attempts: 3
+    delay_seconds: 5
+
+# =========================
+# COOKIE MANAGEMENT
+# =========================
+
+cookies:
+  # Cookie settings
+  enabled: true
+  persist_between_sessions: true
+  cookie_file: "cookies.json"
+  
+  # Cookie handling
+  handling:
+    accept_third_party: false
+    accept_session_cookies: true
+    secure_only: false
+    http_only: false
+  
+  # Cookie blocking
+  blocking:
+    block_tracking_cookies: true
+    block_ads_cookies: true
+    block_analytics_cookies: true
+  
+  # Cookie cleaning
+  cleaning:
+    clear_on_shutdown: false
+    clear_on_startup: false
+    auto_clean_interval_hours: 24
+    preserve_domains: []
+  
+  # Cookie operations
+  operations:
+    auto_save: true
+    auto_load: true
+    backup_cookies: true
+
+# =========================
+# SESSION MANAGEMENT
+# =========================
+
+session:
+  # Session persistence
+  persistence:
+    enabled: true
+    save_interval_seconds: 30
+    session_dir: "browser_sessions"
+    max_sessions: 10
+  
+  # Session recovery
+  recovery:
+    auto_recover: true
+    recover_on_crash: true
+    recover_on_timeout: true
+  
+  # Session data
+  data_to_save:
+    - "cookies"
+    - "local_storage"
+    - "session_storage"
+    - "indexed_db"
+    - "cache"
+    - "history"
+  
+  # Session sharing
+  sharing:
+    allow_session_sharing: false
+    shared_session_id: null
+
+# =========================
+# MONITORING AND LOGGING
+# =========================
+
+monitoring:
+  # Performance monitoring
+  performance:
+    enabled: true
+    metrics:
+      - "page_load_time"
+      - "dom_interactive_time"
+      - "first_paint_time"
+      - "first_contentful_paint"
+      - "largest_contentful_paint"
+      - "time_to_interactive"
+      - "total_blocking_time"
+      - "cumulative_layout_shift"
+    
+    collect_interval_seconds: 5
+    save_metrics: true
+  
+  # Resource monitoring
+  resources:
+    enabled: true
+    metrics:
+      - "cpu_usage"
+      - "memory_usage"
+      - "network_usage"
+      - "disk_io"
+    
+    alert_thresholds:
+      cpu_percent: 80
+      memory_mb: 1024
+      network_kbps: 10000
+  
+  # Logging
+  logging:
+    level: "info"  # Options: debug, info, warning, error, critical
+    log_file: "logs/browser.log"
+    log_console: true
+    log_network: false
+    log_performance: true
+    
+    log_rotation:
+      max_size_mb: 100
+      backup_count: 10
+      compress: true
+  
+  # Console capture
+  console_capture:
+    enabled: true
+    capture_errors: true
+    capture_warnings: true
+    capture_logs: false
+    max_messages: 1000
+  
+  # Network capture
+  network_capture:
+    enabled: false
+    capture_requests: true
+    capture_responses: false
+    capture_headers: false
+    capture_bodies: false
+    max_requests: 500
+
+# =========================
+# EXTENSIONS AND PLUGINS
+# =========================
+
+extensions:
+  # Extension management
+  enabled: false
+  extensions_dir: "browser_extensions"
+  
+  # Built-in extensions
+  builtin_extensions:
+    - "adblock"
+    - "privacy_badger"
+    - "https_everywhere"
+  
+  # Custom extensions
+  custom_extensions: []
+  
+  # Extension settings
+  settings:
+    load_unpacked: true
+    auto_update: true
+    allow_incognito: false
+  
+  # Ad blocking
+  adblock:
+    enabled: false
+    block_lists:
+      - "easylist"
+      - "easyprivacy"
+      - "fanboy_annoyance"
+    custom_rules: []
+
+# =========================
+# DEBUG AND DEVELOPMENT
+# =========================
+
+debug:
+  # Debug mode
+  enabled: false
+  
+  # Remote debugging
+  remote_debugging:
+    enabled: false
+    port: 9222
+    host: "localhost"
+    allow_external: false
+  
+  # Developer tools
+  devtools:
+    auto_open: false
+    persist_toolbar: false
+  
+  # Verbose logging
+  verbose: false
+  
+  # Step-by-step execution
+  step_mode: false
+  
+  # Screenshot on action
+  screenshot_on_action: false
+  
+  # DOM snapshot on action
+  dom_snapshot_on_action: false
+  
+  # Command tracing
+  command_tracing: false
+  
+  # Network throttling simulation
+  network_throttling:
+    enabled: false
+    profile: "slow_3g"  # Options: slow_3g, fast_3g, regular_4g, offline
+  
+  # CPU throttling
+  cpu_throttling:
+    enabled: false
+    factor: 4  # Slowness factor (1-100)
+  
+  # Debug endpoints
+  debug_endpoints:
+    enabled: false
+    base_url: "/debug"
+    endpoints:
+      - "/screenshot"
+      - "/html"
+      - "/console"
+      - "/metrics"
+
+# =========================
+# INTEGRATION SETTINGS
+# =========================
+
+integration:
+  # REST API
+  rest_api:
+    enabled: true
+    base_path: "/api/browser"
+    timeout_seconds: 30
+  
+  # WebSocket
+  websocket:
+    enabled: false
+    port: 8766
+    path: "/browser"
+  
+  # CDP (Chrome DevTools Protocol)
+  cdp:
+    enabled: true
+    port: 9223
+    host: "localhost"
+  
+  # BiDi (WebDriver BiDi)
+  bidi:
+    enabled: false
+    port: 9224
+  
+  # External automation tools
+  automation_tools:
+    selenium_grid:
+      enabled: false
+      url: "http://localhost:4444"
+    
+    puppeteer:
+      enabled: false
+      executable_path: null
+    
+    playwright:
+      enabled: false
+      executable_path: null

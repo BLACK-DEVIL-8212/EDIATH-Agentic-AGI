@@ -1,0 +1,15 @@
+┌──────────────┬──────────────────────────────┬──────────────────┐
+│ EDIATH AI    │  [YOU]           your message │  Memory Usage    │
+│ (logo card)  │                              │  ████░░░░  62%   │
+│              │  EDIATH                       │  ▁▂▃▄▅▆ graph   │
+│  ◉ avatar   │  AI response bubble           ├──────────────────┤
+│  (animated)  │                              │  System Usage    │
+│              │  — system note —             │  CPU  ████░  45% │
+│  Planning    │                              │  GPU  ██░░░  28% │
+│  Steps       │                              │  RAM  ████░  61% │
+│  ✓ done      │                              │  VRAM ███░░  40% │
+│  ▶ active    │  [Type a message…] 🎤 Send ↑ │  DISK ██░░░  30% │
+│  ○ pending   │                              │                  │
+├──────────────┴──────────────────────────────┴──────────────────┤
+│  ● Status: Listening        12:34:56       Task: Researching…  │
+└─────────────────────────────────────────────────────────────────┘
