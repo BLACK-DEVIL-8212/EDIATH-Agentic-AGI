@@ -48,7 +48,6 @@ try:
     CRON_AVAILABLE = True
 except ImportError:
     CRON_AVAILABLE = False
-    logger = lambda *args, **kwargs: None  # Placeholder
 
 try:
     import redis.asyncio as redis
@@ -840,14 +839,16 @@ class TaskScheduler:
         Returns:
             Task ID
         """
-        # Create circuit breaker if needed
+        # Create circuit breaker if needed - FIXED: removed walrus operator
         circuit_breaker = None
-        if retries > 0 and failure_threshold := metadata.get("circuit_breaker_threshold"): # type: ignore
-            circuit_breaker = CircuitBreaker(
-                name=name,
-                failure_threshold=failure_threshold, # type: ignore
-                recovery_timeout=metadata.get("recovery_timeout", 60)
-            )
+        if retries > 0 and metadata and "circuit_breaker_threshold" in metadata:
+            failure_threshold = metadata.get("circuit_breaker_threshold")
+            if failure_threshold:
+                circuit_breaker = CircuitBreaker(
+                    name=name,
+                    failure_threshold=failure_threshold,
+                    recovery_timeout=metadata.get("recovery_timeout", 60)
+                )
         
         task = Task(
             name=name,
@@ -1334,11 +1335,11 @@ class TaskScheduler:
         # Calculate average queue time
         avg_queue_time = 0
         if self.task_history:
-            queue_times = [
-                (r.start_time - t.created_at).total_seconds() * 1000
-                for r in self.task_history[-100:]
-                if (t := self.tasks.get(r.task_id))
-            ]
+            queue_times = []
+            for r in self.task_history[-100:]:
+                t = self.tasks.get(r.task_id)
+                if t:
+                    queue_times.append((r.start_time - t.created_at).total_seconds() * 1000)
             if queue_times:
                 avg_queue_time = sum(queue_times) / len(queue_times)
         
@@ -1347,8 +1348,8 @@ class TaskScheduler:
                 "status": "running" if self._running else "stopped",
                 "healthy": self.healthy,
                 "uptime_seconds": (
-                    datetime.now() - self.last_health_check
-                ).total_seconds() if self.last_health_check else 0,
+                    (datetime.now() - self.last_health_check).total_seconds() if self.last_health_check else 0
+                ),
                 "workers": self.max_workers,
                 "active_workers": len([t for t in self._worker_tasks if not t.done()]),
                 "queue_size": self._work_queue.qsize(),
@@ -1668,4 +1669,25 @@ async def example_usage():
     
     # Get statistics
     print("\n4. Getting statistics...")
-   
+    stats = await scheduler.get_stats()
+    print(f"Statistics: {stats}")
+    
+    # Get all tasks
+    print("\n5. Getting all tasks...")
+    tasks = scheduler.get_tasks()
+    for task in tasks:
+        print(f"  - {task['name']}: {task['status']}")
+    
+    # Cancel a task
+    print("\n6. Cancelling task...")
+    scheduler.cancel(id2)
+    
+    # Stop scheduler
+    print("\n7. Stopping scheduler...")
+    await scheduler.stop()
+    
+    print("\n✅ Task Scheduler example completed!")
+
+
+if __name__ == "__main__":
+    asyncio.run(example_usage())
