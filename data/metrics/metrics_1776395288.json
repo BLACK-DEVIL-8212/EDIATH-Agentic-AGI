@@ -1,0 +1,1976 @@
+{
+  "timestamp": "2026-04-17T08:38:08.897982",
+  "state": "running",
+  "processing_count": 271,
+  "error_count": 0,
+  "uptime_seconds": 80.24835109710693,
+  "component_status": {
+    "system_controller": "healthy",
+    "command_router": "healthy",
+    "workflow_engine": "healthy",
+    "safety_layer": "healthy",
+    "agent_core": "healthy",
+    "agent_loop": "healthy",
+    "llm_engine": "healthy",
+    "decision_engine": "healthy",
+    "memory_manager": "healthy",
+    "autonomous_core": "healthy",
+    "goal_manager": "healthy",
+    "emotion_detector": "healthy",
+    "feedback_loop": "healthy",
+    "audit_logger": "healthy"
+  },
+  "custom_metrics": {
+    "orchestrator_state": {
+      "{'state': 'running'}": 1
+    },
+    "component_status": {
+      "{'component': 'system_controller'}": 1,
+      "{'component': 'command_router'}": 1,
+      "{'component': 'workflow_engine'}": 1,
+      "{'component': 'safety_layer'}": 1,
+      "{'component': 'agent_core'}": 1,
+      "{'component': 'agent_loop'}": 1,
+      "{'component': 'llm_engine'}": 1,
+      "{'component': 'decision_engine'}": 1,
+      "{'component': 'memory_manager'}": 1,
+      "{'component': 'autonomous_core'}": 1,
+      "{'component': 'goal_manager'}": 1,
+      "{'component': 'emotion_detector'}": 1,
+      "{'component': 'feedback_loop'}": 1,
+      "{'component': 'audit_logger'}": 1
+    },
+    "processing_latency": [],
+    "errors_total": {},
+    "tasks_processed": {},
+    "active_tasks": 0,
+    "agent_tasks": {},
+    "processing_latency_seconds": [
+      {
+        "value": 0.13090014457702637,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395229.027218
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395229.1305697
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395229.3280315
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395229.432366
+      },
+      {
+        "value": 0.0010080337524414062,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395229.61383
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395229.7017508
+      },
+      {
+        "value": 0.3808279037475586,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395230.1826394
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395230.2828567
+      },
+      {
+        "value": 0.42845916748046875,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395230.8122687
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395230.9005167
+      },
+      {
+        "value": 0.10677742958068848,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395231.3309498
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395231.4252245
+      },
+      {
+        "value": 0.2964348793029785,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395231.822302
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395231.9279451
+      },
+      {
+        "value": 0.001001596450805664,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395232.3708665
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395232.4807372
+      },
+      {
+        "value": 0.0009989738464355469,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395232.9185443
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395233.0163872
+      },
+      {
+        "value": 0.2867906093597412,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395233.4034908
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395233.502164
+      },
+      {
+        "value": 0.10524868965148926,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395233.9327583
+      },
+      {
+        "value": 0.0010154247283935547,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395234.0239909
+      },
+      {
+        "value": 0.37892699241638184,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395234.5055199
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395234.6135688
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395235.0077412
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395235.1186957
+      },
+      {
+        "value": 0.001001119613647461,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395235.6084785
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395235.7136347
+      },
+      {
+        "value": 0.0020074844360351562,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395236.2128823
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395236.313817
+      },
+      {
+        "value": 0.10436487197875977,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395236.7750115
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395236.876564
+      },
+      {
+        "value": 0.10347247123718262,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395237.080714
+      },
+      {
+        "value": 0.11802983283996582,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395237.5560853
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395237.6678574
+      },
+      {
+        "value": 0.0010001659393310547,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395238.0778897
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395238.1793756
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395238.6505446
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395238.7622674
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395239.3492248
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395239.4389389
+      },
+      {
+        "value": 0.3830685615539551,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395239.9165342
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395240.0156403
+      },
+      {
+        "value": 0.34035468101501465,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395240.4445906
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395240.556707
+      },
+      {
+        "value": 0.0010018348693847656,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395240.9363241
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395241.0275908
+      },
+      {
+        "value": 0.3063948154449463,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395241.434235
+      },
+      {
+        "value": 0.0009999275207519531,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395241.52953
+      },
+      {
+        "value": 0.43390727043151855,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395242.0691705
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395242.1750746
+      },
+      {
+        "value": 0.3143794536590576,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395242.5802002
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395242.6763363
+      },
+      {
+        "value": 0.3348658084869385,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395243.1114306
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395243.2144766
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395243.7027595
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395243.8064492
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395244.3463714
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395244.4479694
+      },
+      {
+        "value": 0.0009894371032714844,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395245.0199888
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395245.1175811
+      },
+      {
+        "value": 0.0010094642639160156,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395245.6230893
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395245.7223053
+      },
+      {
+        "value": 0.3100776672363281,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395246.1284153
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395246.2303464
+      },
+      {
+        "value": 0.0009996891021728516,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395246.7870545
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395246.8961189
+      },
+      {
+        "value": 0.0010006427764892578,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395247.3784761
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395247.466572
+      },
+      {
+        "value": 0.4859302043914795,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395248.0531607
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395248.1469874
+      },
+      {
+        "value": 0.0009944438934326172,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395248.3412647
+      },
+      {
+        "value": 0.10333871841430664,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395248.8426743
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395248.94041
+      },
+      {
+        "value": 0.44950008392333984,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395249.4914188
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395249.5935178
+      },
+      {
+        "value": 0.5332822799682617,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395250.226894
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395250.3305216
+      },
+      {
+        "value": 0.4198300838470459,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395250.8509197
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395250.9523416
+      },
+      {
+        "value": 0.39619994163513184,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395251.4485867
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395251.5547495
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395252.1823986
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395252.2818873
+      },
+      {
+        "value": 0.10298895835876465,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395252.4854643
+      },
+      {
+        "value": 0.10384964942932129,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395252.9852655
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395253.0871356
+      },
+      {
+        "value": 0.0015189647674560547,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395253.6465065
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395253.7602847
+      },
+      {
+        "value": 0.0009589195251464844,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395253.9330125
+      },
+      {
+        "value": 0.10485005378723145,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395254.5701277
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395254.681519
+      },
+      {
+        "value": 0.0009999275207519531,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395255.2448523
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395255.3549192
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395255.5497093
+      },
+      {
+        "value": 0.1021413803100586,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395256.000863
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395256.0977418
+      },
+      {
+        "value": 0.4463627338409424,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395256.6442828
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395256.7353768
+      },
+      {
+        "value": 0.10212039947509766,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395257.2292752
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395257.3259852
+      },
+      {
+        "value": 0.5951251983642578,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395258.0218892
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395258.11601
+      },
+      {
+        "value": 0.001951456069946289,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395258.6136448
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395258.7087731
+      },
+      {
+        "value": 0.10427236557006836,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395259.2045696
+      },
+      {
+        "value": 0.11026239395141602,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395259.4171534
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395259.5189533
+      },
+      {
+        "value": 0.10245037078857422,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395259.9352877
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395260.032324
+      },
+      {
+        "value": 0.36908650398254395,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395260.4997246
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395260.5993083
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395260.8135543
+      },
+      {
+        "value": 0.10286116600036621,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395261.22868
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395261.3249803
+      },
+      {
+        "value": 0.36867547035217285,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395261.7944705
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395261.8932292
+      },
+      {
+        "value": 0.3741133213043213,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395262.3674638
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395262.4720654
+      },
+      {
+        "value": 0.36870837211608887,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395262.9415772
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395263.037169
+      },
+      {
+        "value": 0.0009262561798095703,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395263.4600604
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395263.5625794
+      },
+      {
+        "value": 0.401688814163208,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395264.0647852
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395264.1584988
+      },
+      {
+        "value": 0.38321781158447266,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395264.6417484
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395264.7319558
+      },
+      {
+        "value": 0.10377168655395508,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395264.9312558
+      },
+      {
+        "value": 0.10406136512756348,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395265.6986852
+      },
+      {
+        "value": 0.0005109310150146484,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395265.8004608
+      },
+      {
+        "value": 0.5894613265991211,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395266.4904919
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395266.59029
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395266.7875638
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395266.8996227
+      },
+      {
+        "value": 0.0009982585906982422,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395267.0857348
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395267.1877718
+      },
+      {
+        "value": 0.1030423641204834,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395267.3928106
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395267.4908571
+      },
+      {
+        "value": 0.0009992122650146484,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395267.685786
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395267.787166
+      },
+      {
+        "value": 0.0009951591491699219,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395267.9818273
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395268.0876417
+      },
+      {
+        "value": 0.0005116462707519531,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395268.282839
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395268.385792
+      },
+      {
+        "value": 0.0009963512420654297,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395268.5819037
+      },
+      {
+        "value": 0.0010006427764892578,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395268.6678884
+      },
+      {
+        "value": 0.10638022422790527,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395268.8762975
+      },
+      {
+        "value": 0.1046285629272461,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395269.3664212
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395269.477554
+      },
+      {
+        "value": 0.004426717758178711,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395270.0664678
+      },
+      {
+        "value": 0.0020029544830322266,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395270.160838
+      },
+      {
+        "value": 0.12981247901916504,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395270.3973494
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395270.4991426
+      },
+      {
+        "value": 0.10752582550048828,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395270.7012403
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395270.8118474
+      },
+      {
+        "value": 0.0010001659393310547,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395270.9935944
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395271.1351979
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395271.5423994
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395271.6414902
+      },
+      {
+        "value": 0.1128396987915039,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395271.863817
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395271.9537163
+      },
+      {
+        "value": 0.10373783111572266,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395272.157974
+      },
+      {
+        "value": 0.0010008811950683594,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395272.2427602
+      },
+      {
+        "value": 0.10276937484741211,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395272.4558477
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395272.5399454
+      },
+      {
+        "value": 0.10152697563171387,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395272.7495651
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395272.844089
+      },
+      {
+        "value": 0.10306382179260254,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395273.0479603
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395273.1446197
+      },
+      {
+        "value": 0.1051340103149414,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395273.335872
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395273.4347146
+      },
+      {
+        "value": 0.10197234153747559,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395273.6368022
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395273.7428231
+      },
+      {
+        "value": 0.0020198822021484375,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395273.9369981
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395274.0366106
+      },
+      {
+        "value": 0.10362029075622559,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395274.2333605
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395274.3297303
+      },
+      {
+        "value": 0.10376763343811035,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395274.5284982
+      },
+      {
+        "value": 0.0009307861328125,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395274.617559
+      },
+      {
+        "value": 0.41223621368408203,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395275.1383739
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395275.2318962
+      },
+      {
+        "value": 0.10354399681091309,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395275.4361935
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395275.529231
+      },
+      {
+        "value": 0.10475468635559082,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395275.7206743
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395275.809771
+      },
+      {
+        "value": 0.10358262062072754,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395276.014213
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395276.1175401
+      },
+      {
+        "value": 0.0009992122650146484,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395276.3163526
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395276.412457
+      },
+      {
+        "value": 0.0010793209075927734,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395276.6078472
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395276.7032998
+      },
+      {
+        "value": 0.10464787483215332,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395276.908811
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395277.0045345
+      },
+      {
+        "value": 0.10478472709655762,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395277.2097445
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395277.3050544
+      },
+      {
+        "value": 0.10420346260070801,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395277.521979
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395277.6377435
+      },
+      {
+        "value": 0.001081228256225586,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395277.8109717
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395277.9060924
+      },
+      {
+        "value": 0.10451436042785645,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395278.1110694
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395278.2087345
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395278.3898683
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395278.491459
+      },
+      {
+        "value": 0.0009999275207519531,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395278.6835856
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395278.7801578
+      },
+      {
+        "value": 0.35723400115966797,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395279.2429125
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395279.3409078
+      },
+      {
+        "value": 0.10302233695983887,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395279.5455139
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395279.6496115
+      },
+      {
+        "value": 0.0010001659393310547,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395279.8432715
+      },
+      {
+        "value": 0.0010013580322265625,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395279.9327981
+      },
+      {
+        "value": 0.10307693481445312,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395280.1465836
+      },
+      {
+        "value": 0.0010025501251220703,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395280.246646
+      },
+      {
+        "value": 0.1020503044128418,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395280.4577613
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395280.5512805
+      },
+      {
+        "value": 0.10263419151306152,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395280.7434509
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395280.8445249
+      },
+      {
+        "value": 0.10202288627624512,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395281.0466046
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395281.1416757
+      },
+      {
+        "value": 0.10377311706542969,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395281.345662
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395281.4358218
+      },
+      {
+        "value": 0.10217761993408203,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395281.6398447
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395281.7394826
+      },
+      {
+        "value": 0.1043386459350586,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395281.9446414
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395282.0530381
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395282.2325683
+      },
+      {
+        "value": 0.0036072731018066406,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395282.3398604
+      },
+      {
+        "value": 0.0009989738464355469,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395282.5359356
+      },
+      {
+        "value": 0.0035593509674072266,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395282.6310496
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395282.8225129
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395282.9184256
+      },
+      {
+        "value": 0.10148739814758301,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395283.1160378
+      },
+      {
+        "value": 0.0009999275207519531,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395283.2236192
+      },
+      {
+        "value": 0.10440421104431152,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395283.4158149
+      },
+      {
+        "value": 0.0010020732879638672,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395283.5304582
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395283.7227023
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395283.811339
+      },
+      {
+        "value": 0.10263872146606445,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395284.0144932
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395284.118546
+      },
+      {
+        "value": 0.0010058879852294922,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395284.3116565
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395284.4072216
+      },
+      {
+        "value": 0.104034423828125,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395284.6073263
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395284.7033334
+      },
+      {
+        "value": 0.10332822799682617,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395284.9067154
+      },
+      {
+        "value": 0.0010008811950683594,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395285.0117743
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395285.209446
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395285.3061152
+      },
+      {
+        "value": 0.10258245468139648,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395285.5092218
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395285.6022875
+      },
+      {
+        "value": 0.10358858108520508,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395285.8059392
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395285.903483
+      },
+      {
+        "value": 0.1030435562133789,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395286.1066403
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395286.2012525
+      },
+      {
+        "value": 0.1020500659942627,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395286.3955128
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395286.4816635
+      },
+      {
+        "value": 0.10407471656799316,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395286.6875427
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395286.7878394
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395286.9813883
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395287.0886202
+      },
+      {
+        "value": 0.00102996826171875,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395287.2843666
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395287.3770182
+      },
+      {
+        "value": 0.10371971130371094,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395287.5821815
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395287.677505
+      },
+      {
+        "value": 0.0010094642639160156,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395287.8710926
+      },
+      {
+        "value": 0.0010004043579101562,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395287.9774492
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395288.1703877
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395288.26846
+      },
+      {
+        "value": 0.10102725028991699,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395288.4575057
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395288.551562
+      },
+      {
+        "value": 0.10592222213745117,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395288.756467
+      },
+      {
+        "value": 0.0,
+        "labels": {
+          "operation": "full_tick"
+        },
+        "time": 1776395288.8497274
+      }
+    ]
+  },
+  "agent_status": {
+    "browser": "active",
+    "calculator": "active",
+    "file": "active",
+    "search": "active",
+    "shell": "active",
+    "vision": "active",
+    "speech": "active",
+    "translation": "active",
+    "code_execution": "active",
+    "database": "active",
+    "email": "active",
+    "notification": "active",
+    "scheduler": "active",
+    "automation": "active",
+    "system_control": "active",
+    "network": "active",
+    "knowledge_base": "active",
+    "retrieval": "active",
+    "math": "active",
+    "critic": "active",
+    "calendar": "active",
+    "fitness": "active",
+    "nlp": "active",
+    "security": "active",
+    "planner": "active"
+  },
+  "multi_agent_error": "'AgentInfo' object has no attribute 'response_times'"
+}
