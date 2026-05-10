@@ -37,12 +37,16 @@ class AppController:
             self.chat_box.add_message("YOU", text)
 
         # send to backend
+<<<<<<< HEAD
         # AIBackend uses send_user_message as the stable entrypoint
         if hasattr(self.backend, "send_user_message"):
             self.backend.send_user_message(text)
         else:
             # fallback for older backend implementations
             self.backend.send_message(text)
+=======
+        self.backend.send_message(text)
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
     # ─────────────────────────────────────────────
     # BACKEND → UI

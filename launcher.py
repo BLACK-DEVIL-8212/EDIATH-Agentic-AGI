@@ -32,6 +32,7 @@ def setup_signal_handlers():
 
 
 # =========================
+<<<<<<< HEAD
 # MODEL CONFIGURATION
 # =========================
 def get_model_path():
@@ -56,6 +57,8 @@ def get_model_path():
 
 
 # =========================
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 # SAFE ASYNC RUNNER
 # =========================
 def run_async_safe(coro_func, *args, **kwargs):
@@ -89,6 +92,7 @@ def run_async_safe(coro_func, *args, **kwargs):
 # =========================
 def start_backend():
     try:
+<<<<<<< HEAD
         # Set environment variable for model path before importing
         import os
         os.environ['EDIATH_MODEL_PATH'] = get_model_path()
@@ -97,6 +101,11 @@ def start_backend():
 
         logger.info("🔧 Starting backend...")
         logger.info(f"📁 Using model: {os.environ['EDIATH_MODEL_PATH']}")
+=======
+        from main import run_backend_only
+
+        logger.info("🔧 Starting backend...")
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         return run_async_safe(run_backend_only)
 
     except Exception as e:
@@ -109,6 +118,7 @@ def start_backend():
 # =========================
 def start_full_ui():
     try:
+<<<<<<< HEAD
         # Set environment variable for model path before importing
         import os
         os.environ['EDIATH_MODEL_PATH'] = get_model_path()
@@ -117,6 +127,11 @@ def start_full_ui():
 
         logger.info("🎨 Starting UI + backend...")
         logger.info(f"📁 Using model: {os.environ['EDIATH_MODEL_PATH']}")
+=======
+        from main import main_interactive
+
+        logger.info("🎨 Starting UI + backend...")
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         main_interactive()
 
     except Exception as e:
@@ -151,6 +166,7 @@ def validate_main():
     return True
 
 
+<<<<<<< HEAD
 def check_llama_version():
     """Check if llama-cpp-python is installed and version"""
     try:
@@ -167,6 +183,8 @@ def check_llama_version():
         return False
 
 
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 # =========================
 # MAIN
 # =========================
@@ -188,6 +206,7 @@ def main():
     if not validate_main():
         sys.exit(1)
 
+<<<<<<< HEAD
     # Check llama-cpp-python before starting
     if not check_llama_version():
         response = input("\nContinue anyway? (y/n): ")
@@ -206,6 +225,8 @@ def main():
         
     print()
 
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     try:
         if args.mode == "backend":
             thread = start_backend()
@@ -224,4 +245,8 @@ def main():
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     main()
+=======
+    main()
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7

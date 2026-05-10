@@ -30,6 +30,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ediath.main")
 
+<<<<<<< HEAD
+=======
+# ── Legacy-mode deprecation notice ──────────────────────────────────────────
+logger.info(
+    "main.py is the legacy entry point. " "Prefer: python -m ediath.cli --mode=ui"
+)
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 # ── System component imports ─────────────────────────────────────────────────
 from core.security.content_filter import ContentFilter
 from core.brain.llm_engine import LLMEngine
@@ -74,6 +82,7 @@ from core.automation.data_extractor import DataExtractor
 from core.automation.web_researcher import WebResearcher
 from core.agent.agent_core import RAgent
 
+<<<<<<< HEAD
 # Optional: multi-agent wrappers requested by user
 try:
     from core.agents.register_with_coordinator import register_default_agents as _register_default_agents
@@ -81,6 +90,8 @@ except Exception:
     _register_default_agents = None
 
 
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 # ── Optional: FilterAction for content filtering ─────────────────────────────
 try:
     from core.security.content_filter import FilterAction as _FilterAction
@@ -91,6 +102,10 @@ except Exception as _e:
 # ── Optional: Kivy ───────────────────────────────────────────────────────────
 try:
     from kivy.clock import Clock as KivyClock
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     _KIVY_AVAILABLE = True
 except Exception:
     KivyClock = None
@@ -109,11 +124,16 @@ from core.audio.wakeword import Wakeword
 # ── Optional: config_loader ──────────────────────────────────────────────────
 try:
     from core.system import config_loader as _config_loader_module
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     _CONFIG_LOADER_AVAILABLE = True
 except Exception:
     _config_loader_module = None
     _CONFIG_LOADER_AVAILABLE = False
 
+<<<<<<< HEAD
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SINGLETON LLM ENGINE - LOADED ONCE FOR ALL AGENTS
@@ -218,6 +238,8 @@ def inject_shared_llm_into_component(component: Any, shared_llm: LLMEngine) -> N
                 inject_shared_llm_into_component(child, shared_llm)
 
 
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────────────────────────────────────
@@ -243,12 +265,27 @@ def set_ui_callback(callback: callable) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+<<<<<<< HEAD
 # Windows-safe atomic file write
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _safe_atomic_write(
     tmp_path: str, final_path: str, retries: int = 5, delay: float = 0.3
 ) -> None:
+=======
+# FIX 1 — Windows-safe atomic file write (prevents WinError 5 Access Denied)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _safe_atomic_write(
+    tmp_path: str, final_path: str, retries: int = 5, delay: float = 0.3
+) -> None:
+    """
+    Atomic rename with retry loop.
+    On Windows, os.replace can raise PermissionError if another process
+    still has the .tmp file open.  We back off and retry before giving up.
+    """
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     last_exc: Optional[Exception] = None
     for attempt in range(retries):
         try:
@@ -259,9 +296,15 @@ def _safe_atomic_write(
             logger.warning(
                 "Persist write permission error (attempt %d): %s", attempt + 1, exc
             )
+<<<<<<< HEAD
             time.sleep(delay * (attempt + 1))
         except Exception as exc:
             raise exc
+=======
+            time.sleep(delay * (attempt + 1))  # progressive back-off
+        except Exception as exc:
+            raise exc  # non-permission errors: surface immediately
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     raise PermissionError(
         f"Could not rename {tmp_path!r} → {final_path!r} after {retries} attempts"
     ) from last_exc
@@ -277,19 +320,27 @@ _action_router_instance = None
 _router_instance = None
 
 
+<<<<<<< HEAD
 def _import_agent_modules(shared_llm: Optional[LLMEngine] = None) -> bool:
     """Import agent modules and inject the shared LLM engine."""
+=======
+def _import_agent_modules() -> bool:
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     global _agent_modules_imported
     global _intent_classifier_instance, _action_router_instance, _router_instance
 
     if _agent_modules_imported:
         return True
+<<<<<<< HEAD
     
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     try:
         from core.agent.intent_classifier import IntentClassifier
         from core.agent.action_router import ActionRouter
         from core.agent.router import Router
 
+<<<<<<< HEAD
         # Create instances with SHARED LLM (not a new one!)
         _intent_classifier_instance = IntentClassifier(llm_engine=shared_llm)
         _action_router_instance = ActionRouter()
@@ -303,6 +354,15 @@ def _import_agent_modules(shared_llm: Optional[LLMEngine] = None) -> bool:
         return True
     except Exception as exc:
         logger.warning(f"Agent modules unavailable: {exc}")
+=======
+        _intent_classifier_instance = IntentClassifier()
+        _action_router_instance = ActionRouter()
+        _router_instance = Router()
+        _agent_modules_imported = True
+        return True
+    except Exception as exc:
+        logger.warning("Agent modules unavailable: %s", exc)
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         return False
 
 
@@ -310,8 +370,14 @@ def _import_agent_modules(shared_llm: Optional[LLMEngine] = None) -> bool:
 # Main system class
 # ─────────────────────────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 class EDIATHSystem:
     """Main EDIATH AI System with SHARED SINGLETON LLM Engine."""
+=======
+
+class EDIATHSystem:
+    """Main EDIATH AI System."""
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
     def __init__(self, orchestrator: Optional[EDIATHOrchestrator] = None) -> None:
         self._tasks: List[asyncio.Task] = []
@@ -338,6 +404,7 @@ class EDIATHSystem:
         self.curiosity = CuriosityEngine()
         self.self_improvement = SelfImprovement()
 
+<<<<<<< HEAD
         # ═══════════════════════════════════════════════════════════════════
         # SHARED LLM ENGINE - SINGLETON (LOADED ONCE)
         # ═══════════════════════════════════════════════════════════════════
@@ -347,6 +414,12 @@ class EDIATHSystem:
 
         # Decision engine (will receive shared LLM)
         self.decision_engine = DecisionEngine()
+=======
+        # Brain
+        self.decision_engine = DecisionEngine()
+        self.llm_engine = LLMEngine()
+        self.llm_lock = asyncio.Lock()
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
         # Autonomy
         self.autonomous_core = AutonomousCoreEngine()
@@ -374,7 +447,11 @@ class EDIATHSystem:
         self.vision_engine_instance = None
         self.software_builder = software_builder.SoftwareBuilder()
 
+<<<<<<< HEAD
         # UI references
+=======
+        # UI references (legacy - kept for compatibility)
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         self.ui_window = None
         self.chat_panel = None
         self.status_bar = None
@@ -385,17 +462,27 @@ class EDIATHSystem:
         self.code_agent = None
         self.file_agent = None
 
+<<<<<<< HEAD
         # Core agent (will receive shared LLM)
         self.agent = None  # Initialized after shared LLM is ready
+=======
+        # Core agent
+        self.agent = RAgent(self)
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
         # Memory
         self.memory_api = None
         try:
             from core.memory.memory_manager import MemoryManager
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             self.memory_api = MemoryManager()
         except Exception as exc:
             self.logger.warning("Memory API not available: %s", exc)
 
+<<<<<<< HEAD
     # ═══════════════════════════════════════════════════════════════════════
     # SHARED LLM INJECTION
     # ═══════════════════════════════════════════════════════════════════════
@@ -443,6 +530,8 @@ class EDIATHSystem:
         self.logger.info("   → No duplicate LLM instances will be created")
         self.logger.info("=" * 60)
 
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     # ── Listener helpers ──────────────────────────────────────────────────────
 
     def _start_listener(self) -> bool:
@@ -517,7 +606,13 @@ class EDIATHSystem:
             deps["audio_listener"] = AudioListener is not None
             deps["kivy"] = _KIVY_AVAILABLE
             deps["config_file"] = CONFIG_PATH.exists()
+<<<<<<< HEAD
             deps["llm_engine"] = self.shared_llm is not None
+=======
+            deps["llm_engine"] = (
+                hasattr(self, "llm_engine") and self.llm_engine is not None
+            )
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             deps["event_loop"] = asyncio.get_running_loop() is not None
 
             try:
@@ -544,6 +639,7 @@ class EDIATHSystem:
         try:
             self.logger.info("=" * 60)
             self.logger.info("EDIATH AUTONOMOUS AI SYSTEM — INITIALIZATION")
+<<<<<<< HEAD
             self.logger.info("WITH SHARED SINGLETON LLM ENGINE")
             self.logger.info("=" * 60)
 
@@ -585,6 +681,12 @@ class EDIATHSystem:
             inject_shared_llm_into_component(self.agent, self.shared_llm)
             self.logger.info("✅ RAgent created with shared LLM")
 
+=======
+            self.logger.info("=" * 60)
+
+            await self.validate_deps()
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             # ── RATE LIMITER ──────────────────────────────────────────────────
             try:
                 self.logger.info("Initializing RateLimiter…")
@@ -594,7 +696,13 @@ class EDIATHSystem:
                 await self._setup_rate_limits()
                 self.logger.info("RateLimiter ready")
             except Exception as exc:
+<<<<<<< HEAD
                 self.logger.warning("RateLimiter failed → continuing without it: %s", exc)
+=======
+                self.logger.warning(
+                    "RateLimiter failed → continuing without it: %s", exc
+                )
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 self.rate_limiter = None
 
             # ── TASK QUEUE ────────────────────────────────────────────────────
@@ -609,6 +717,7 @@ class EDIATHSystem:
                 self.logger.warning("TaskQueue failed → degraded mode: %s", exc)
                 self.task_queue_manager = None
 
+<<<<<<< HEAD
             # ── DECISION ENGINE with SHARED LLM ────────────────────────────────
             self.logger.info("⚖️ STEP 3: Configuring DecisionEngine with shared LLM...")
             inject_shared_llm_into_component(self.decision_engine, self.shared_llm)
@@ -628,24 +737,64 @@ class EDIATHSystem:
 
                     ok = await asyncio.wait_for(
                         self.orchestrator.initialize(), timeout=30
+=======
+            # ── ORCHESTRATOR ──────────────────────────────────────────────────
+            # FIX: timeout raised 10 → 30 so slow component startup doesn't
+            #      cascade into a full system crash.
+            if self.orchestrator:
+                try:
+                    self.logger.info("Initializing Orchestrator…")
+                    self.orchestrator.system_instance = self
+
+                    ok = await asyncio.wait_for(
+                        self.orchestrator.initialize(), timeout=30  # was 10
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                     )
 
                     if not ok:
                         raise RuntimeError("Orchestrator returned False")
 
+<<<<<<< HEAD
                     self.logger.info("✅ Orchestrator ready with shared LLM")
+=======
+                    self.logger.info("Orchestrator ready")
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                     t = asyncio.create_task(self.orchestrator.run())
                     self._tasks.append(t)
 
                 except asyncio.TimeoutError:
+<<<<<<< HEAD
                     self.logger.warning("Orchestrator init timed out — running without it")
+=======
+                    # Non-fatal — system continues without orchestrator
+                    self.logger.warning(
+                        "Orchestrator init timed out (>30 s) — running without it"
+                    )
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                     self.orchestrator = None
                 except Exception as exc:
                     self.logger.warning("Orchestrator disabled: %s", exc)
                     self.orchestrator = None
 
+<<<<<<< HEAD
             # ── INJECT SHARED LLM INTO ALL OTHER COMPONENTS ────────────────────
             self._inject_shared_llm_to_all_components()
+=======
+            # ── LLM ENGINE (CRITICAL) ─────────────────────────────────────────
+            try:
+                self.logger.info("Loading LLM Engine…")
+                await asyncio.wait_for(self.llm_engine.initialize(), timeout=20)
+
+                if self.llm_engine and self.llm_engine.provider:
+                    self.llm_ready = True
+                    self.logger.info("LLM ready ✅")
+                else:
+                    raise RuntimeError("LLM provider missing")
+
+            except Exception as exc:
+                self.logger.error("LLM failed → SYSTEM WILL NOT RESPOND: %s", exc)
+                self.llm_ready = False
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
             # ── EXECUTOR ──────────────────────────────────────────────────────
             try:
@@ -677,20 +826,31 @@ class EDIATHSystem:
             except Exception as exc:
                 self.logger.warning("Audio disabled: %s", exc)
 
+<<<<<<< HEAD
             # ── VISITRON ────────────────────────────────────────────────────────
+=======
+            # ── VISION ────────────────────────────────────────────────────────
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             try:
                 if os.environ.get("EDIATH_LIGHT_MODE", "0") == "1":
                     raise RuntimeError("Light mode enabled")
 
                 self.vision_engine_instance = vision_engine.VisionEngine()
+<<<<<<< HEAD
                 inject_shared_llm_into_component(self.vision_engine_instance, self.shared_llm)
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 await asyncio.wait_for(
                     self.vision_engine_instance.initialize(), timeout=5
                 )
                 await asyncio.wait_for(
                     self.vision_engine_instance.start_vision(), timeout=5
                 )
+<<<<<<< HEAD
                 self.logger.info("✅ Vision Engine started with shared LLM")
+=======
+                self.logger.info("Vision Engine started")
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
             except Exception as exc:
                 self.logger.warning("Vision disabled: %s", exc)
@@ -700,6 +860,7 @@ class EDIATHSystem:
             set_ui_callback(self.send_ui_message)
             self.is_running = True
 
+<<<<<<< HEAD
             self.logger.info("=" * 60)
             self.logger.info("✅ EDIATH INITIALIZATION COMPLETE")
             self.logger.info(f"   → LLM Engine: {'READY' if self.llm_ready else 'FAILED'}")
@@ -711,6 +872,12 @@ class EDIATHSystem:
                 self.send_ui_message("SYSTEM", "✅ AI READY (Shared LLM Mode)")
             else:
                 self.send_ui_message("SYSTEM", "⚠ AI INITIALIZED (LLM FAILED)")
+=======
+            if self.llm_ready:
+                self.send_ui_message("SYSTEM", "AI READY ✅")
+            else:
+                self.send_ui_message("SYSTEM", "AI INITIALIZED (LLM FAILED ⚠)")
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
             return True
 
@@ -1107,7 +1274,11 @@ class EDIATHSystem:
 
             agent = self.agent
 
+<<<<<<< HEAD
             if _import_agent_modules(self.shared_llm):
+=======
+            if _import_agent_modules():
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 try:
                     intent = await asyncio.wait_for(
                         _intent_classifier_instance.classify(filtered), timeout=2
@@ -1262,11 +1433,15 @@ class EDIATHSystem:
 
         if _UI_CALLBACK:
             try:
+<<<<<<< HEAD
                 # Prefer callback signature (role, content) if supported
                 try:
                     _UI_CALLBACK(role, content)
                 except TypeError:
                     _UI_CALLBACK(content)
+=======
+                _UI_CALLBACK(content)
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             except Exception as exc:
                 self.logger.debug("UI callback error: %s", exc)
 
@@ -1362,7 +1537,10 @@ class EDIATHSystem:
         status: Dict[str, Any] = {
             "is_running": self.is_running,
             "llm_ready": self.llm_ready,
+<<<<<<< HEAD
             "llm_shared": SharedLLMEngine.is_ready(),
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             "thinking": self.thinking,
             "timestamp": time.time(),
             "listener_ready": self._listener_ready.is_set(),
@@ -1710,6 +1888,10 @@ class EDIATHSystem:
 # Config helper
 # ─────────────────────────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 def _load_or_create_config() -> OrchestratorConfig:
     """Load orchestrator config from YAML or create defaults."""
     if CONFIG_PATH.exists():
@@ -1729,6 +1911,10 @@ def _load_or_create_config() -> OrchestratorConfig:
     CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     try:
         import dataclasses as _dc
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         config_dict = _dc.asdict(config)
     except Exception:
         try:
@@ -1745,6 +1931,10 @@ def _load_or_create_config() -> OrchestratorConfig:
 # Voice loop
 # ─────────────────────────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 async def _run_voice_loop(
     system: EDIATHSystem,
     loop: asyncio.AbstractEventLoop,
@@ -1754,6 +1944,10 @@ async def _run_voice_loop(
         return
 
     try:
+<<<<<<< HEAD
+=======
+        # Use configured listener ready timeout for startup to allow slower devices
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         started = await asyncio.wait_for(
             asyncio.to_thread(system._start_listener), timeout=LISTENER_READY_TIMEOUT
         )
@@ -1798,6 +1992,7 @@ async def _run_voice_loop(
                         continue
 
                     async def _handle(t: str = clean):
+<<<<<<< HEAD
                         # Persist voice transcript as episodic memory (best for memorization of conversations/transcripts)
                         if system.memory_api is not None:
                             try:
@@ -1816,6 +2011,8 @@ async def _run_voice_loop(
                             except Exception as _mem_exc:
                                 system.logger.debug("voice memory store failed: %s", _mem_exc)
 
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                         try:
                             res = await asyncio.wait_for(
                                 system.brain_process("voice", {"text": t}), timeout=12
@@ -1860,6 +2057,10 @@ async def _run_voice_loop(
 # Run modes
 # ─────────────────────────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 def run_ui_only() -> None:
     """Run a minimal Kivy UI with no backend."""
     try:
@@ -1891,6 +2092,10 @@ async def run_backend_only() -> None:
         _SYSTEM_INSTANCE = system
 
         try:
+<<<<<<< HEAD
+=======
+            # FIX: raised from 25 → 90 to allow slow component startup
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             ok = await asyncio.wait_for(system.initialize(), timeout=90)
             if not ok:
                 logger.error("❌ Backend initialization failed")
@@ -1909,7 +2114,11 @@ async def run_backend_only() -> None:
             except Exception as exc:
                 system.logger.warning("Voice loop failed: %s", exc)
 
+<<<<<<< HEAD
         system.logger.info("✅ Backend running (Shared LLM Mode)")
+=======
+        system.logger.info("✅ Backend running")
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         restart_attempts = 0
 
         while system.is_running:
@@ -1951,7 +2160,11 @@ async def run_backend_only() -> None:
 
 
 def main_interactive() -> None:
+<<<<<<< HEAD
     """Stable UI + backend runner with shared LLM injection."""
+=======
+    """Stable UI + backend runner with crash protection and non-blocking behaviour."""
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     global _SYSTEM_INSTANCE
 
     from kivy.app import App
@@ -1970,9 +2183,25 @@ def main_interactive() -> None:
 
     init_success = False
     init_error = None
+<<<<<<< HEAD
     init_done = threading.Event()
     backend_loop = None
 
+=======
+    init_done = threading.Event()  # fired as soon as init finishes (not on shutdown)
+    backend_loop = None
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # BACKEND THREAD
+    # FIX 1: Raised system.initialize() timeout 25 → 90 s
+    # FIX 2: Use ui_backend.connect_system() (the proper API) instead of
+    #         directly poking private _system / _loop / _ready attributes.
+    # FIX 3: Signal init_done BEFORE entering the keepalive loop so the UI
+    #         does not wait until full shutdown before displaying "ready".
+    # FIX 4: Partial-connect fallback — if init times out but the agent is
+    #         alive, connect anyway so the UI is usable.
+    # ─────────────────────────────────────────────────────────────────────────
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     def init_in_thread():
         nonlocal init_success, init_error, backend_loop
 
@@ -1982,12 +2211,25 @@ def main_interactive() -> None:
         system.set_backend_loop(loop)
 
         try:
+<<<<<<< HEAD
             try:
                 init_success = loop.run_until_complete(
                     asyncio.wait_for(system.initialize(), timeout=90)
                 )
             except asyncio.TimeoutError:
                 logger.warning("⚠ system.initialize() exceeded 90 s — attempting partial connect")
+=======
+            # ── INIT (generous timeout) ───────────────────────────────────────
+            try:
+                init_success = loop.run_until_complete(
+                    asyncio.wait_for(system.initialize(), timeout=90)  # was 25
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "⚠ system.initialize() exceeded 90 s — attempting partial connect"
+                )
+                # Partial success: connect if agent is alive so UI works
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 if system.agent:
                     system.is_running = True
                     init_success = True
@@ -1996,7 +2238,13 @@ def main_interactive() -> None:
                     init_success = False
                     init_error = "Initialization timed out and no agent available"
 
+<<<<<<< HEAD
             if init_success:
+=======
+            # ── CONNECT BACKEND → UI ──────────────────────────────────────────
+            if init_success:
+                # Use the documented API, not private attributes
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 ui_backend.connect_system(system, loop)
 
                 if system.listener:
@@ -2010,9 +2258,20 @@ def main_interactive() -> None:
             logger.error("💥 Backend crash: \n%s", traceback.format_exc())
 
         finally:
+<<<<<<< HEAD
             init_done.set()
 
         if init_success:
+=======
+            # ── SIGNAL UI (CRITICAL FIX) ─────────────────────────────────────
+            # Must happen BEFORE keepalive so check_ready() in the Kivy thread
+            # is unblocked while the system is still alive.
+            init_done.set()
+
+        # ── KEEP ALIVE (runs after UI has been notified) ──────────────────────
+        if init_success:
+
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             async def keepalive():
                 while system.is_running:
                     await asyncio.sleep(1)
@@ -2032,6 +2291,10 @@ def main_interactive() -> None:
             except Exception as exc:
                 logger.warning("Keepalive exited: %s", exc)
 
+<<<<<<< HEAD
+=======
+        # ── CLEAN SHUTDOWN ────────────────────────────────────────────────────
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         try:
             loop.run_until_complete(system.shutdown())
         except Exception:
@@ -2044,6 +2307,10 @@ def main_interactive() -> None:
 
         loop.close()
 
+<<<<<<< HEAD
+=======
+    # ── UI IMPORT ─────────────────────────────────────────────────────────────
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     try:
         from core.ui.dashboard_screen import DashboardScreen
     except ImportError as exc:
@@ -2053,13 +2320,21 @@ def main_interactive() -> None:
 
     threading.Thread(target=init_in_thread, daemon=True).start()
 
+<<<<<<< HEAD
+=======
+    # ── KIVY APP ──────────────────────────────────────────────────────────────
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     class EDIATHKivyApp(App):
         def __init__(self, backend=None, **kwargs):
             super().__init__(**kwargs)
             self.backend = backend
 
         def build(self):
+<<<<<<< HEAD
             Window.title = "EDIATH AI (Shared LLM Mode)"
+=======
+            Window.title = "EDIATH AI"
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             Window.size = (1280, 800)
             sm = ScreenManager()
             dashboard = DashboardScreen(name="dashboard")
@@ -2076,7 +2351,11 @@ def main_interactive() -> None:
                 if init_success:
                     ui_backend.set_response_callback(self._on_ai_response)
                     ui_backend.set_status_callback(self._on_status_update)
+<<<<<<< HEAD
                     logger.info("✅ Backend connected (Shared LLM enabled)")
+=======
+                    logger.info("✅ Backend connected")
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 else:
                     logger.error("❌ Backend failed: %s", init_error)
 
@@ -2121,12 +2400,21 @@ def main_interactive() -> None:
     logger.info("👋 System shutdown complete")
 
 
+<<<<<<< HEAD
 # ══════════════════════════════════════════════════════════════════════════════
 # ENTRY POINT
 # ══════════════════════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="EDIATH AI System with Shared LLM")
+=======
+# ─────────────────────────────────────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="EDIATH AI System")
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     parser.add_argument(
         "--mode",
         choices=["ui", "backend", "ui-only"],
@@ -2135,6 +2423,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+<<<<<<< HEAD
     print("=" * 70)
     print("EDIATH AI - SINGLETON LLM MODE")
     print("=" * 70)
@@ -2144,6 +2433,8 @@ if __name__ == "__main__":
     print("=" * 70)
     print()
 
+=======
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     if args.mode == "ui-only":
         run_ui_only()
     elif args.mode == "backend":
@@ -2152,4 +2443,8 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\nInterrupted by user")
     else:
+<<<<<<< HEAD
         main_interactive()
+=======
+        main_interactive()
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7

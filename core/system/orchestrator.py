@@ -1322,6 +1322,10 @@ class EDIATHOrchestrator:
     def _check_blender(self) -> bool:
         """Check if Blender/bpy is available"""
         try:
+<<<<<<< HEAD
+=======
+            import bpy
+>>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
             self.logger.info("✅ Blender/bpy available for 3D modeling")
             return True

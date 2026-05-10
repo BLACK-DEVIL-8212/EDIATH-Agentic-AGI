@@ -1,6 +1,6 @@
 {
-  "name": "ai_tasks",
-  "queue_type": "priority",
+  "name": "learning",
+  "queue_type": "round_robin",
   "tasks": [],
   "running_tasks": [],
   "completed_tasks": [],
@@ -18,10 +18,6 @@
     "error_count": 0,
     "success_rate": 100.0
   },
-<<<<<<< HEAD
-  "timestamp": "2026-05-10T16:54:49.721886",
-=======
-  "timestamp": "2026-05-05T19:14:43.349524",
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
+  "timestamp": "2026-05-04T23:53:29.450249",
   "version": "2.2.0"
 }
