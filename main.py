@@ -2183,11 +2183,9 @@ def main_interactive() -> None:
 
     init_success = False
     init_error = None
-<<<<<<< HEAD
     init_done = threading.Event()
     backend_loop = None
 
-=======
     init_done = threading.Event()  # fired as soon as init finishes (not on shutdown)
     backend_loop = None
 
@@ -2201,7 +2199,6 @@ def main_interactive() -> None:
     # FIX 4: Partial-connect fallback — if init times out but the agent is
     #         alive, connect anyway so the UI is usable.
     # ─────────────────────────────────────────────────────────────────────────
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     def init_in_thread():
         nonlocal init_success, init_error, backend_loop
 
@@ -2211,14 +2208,12 @@ def main_interactive() -> None:
         system.set_backend_loop(loop)
 
         try:
-<<<<<<< HEAD
             try:
                 init_success = loop.run_until_complete(
                     asyncio.wait_for(system.initialize(), timeout=90)
                 )
             except asyncio.TimeoutError:
                 logger.warning("⚠ system.initialize() exceeded 90 s — attempting partial connect")
-=======
             # ── INIT (generous timeout) ───────────────────────────────────────
             try:
                 init_success = loop.run_until_complete(
@@ -2229,7 +2224,6 @@ def main_interactive() -> None:
                     "⚠ system.initialize() exceeded 90 s — attempting partial connect"
                 )
                 # Partial success: connect if agent is alive so UI works
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 if system.agent:
                     system.is_running = True
                     init_success = True
@@ -2238,13 +2232,10 @@ def main_interactive() -> None:
                     init_success = False
                     init_error = "Initialization timed out and no agent available"
 
-<<<<<<< HEAD
             if init_success:
-=======
             # ── CONNECT BACKEND → UI ──────────────────────────────────────────
             if init_success:
                 # Use the documented API, not private attributes
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 ui_backend.connect_system(system, loop)
 
                 if system.listener:
@@ -2258,11 +2249,9 @@ def main_interactive() -> None:
             logger.error("💥 Backend crash: \n%s", traceback.format_exc())
 
         finally:
-<<<<<<< HEAD
             init_done.set()
 
         if init_success:
-=======
             # ── SIGNAL UI (CRITICAL FIX) ─────────────────────────────────────
             # Must happen BEFORE keepalive so check_ready() in the Kivy thread
             # is unblocked while the system is still alive.
@@ -2271,7 +2260,6 @@ def main_interactive() -> None:
         # ── KEEP ALIVE (runs after UI has been notified) ──────────────────────
         if init_success:
 
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             async def keepalive():
                 while system.is_running:
                     await asyncio.sleep(1)
@@ -2291,10 +2279,7 @@ def main_interactive() -> None:
             except Exception as exc:
                 logger.warning("Keepalive exited: %s", exc)
 
-<<<<<<< HEAD
-=======
         # ── CLEAN SHUTDOWN ────────────────────────────────────────────────────
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         try:
             loop.run_until_complete(system.shutdown())
         except Exception:
@@ -2307,10 +2292,7 @@ def main_interactive() -> None:
 
         loop.close()
 
-<<<<<<< HEAD
-=======
     # ── UI IMPORT ─────────────────────────────────────────────────────────────
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     try:
         from core.ui.dashboard_screen import DashboardScreen
     except ImportError as exc:
@@ -2320,21 +2302,15 @@ def main_interactive() -> None:
 
     threading.Thread(target=init_in_thread, daemon=True).start()
 
-<<<<<<< HEAD
-=======
     # ── KIVY APP ──────────────────────────────────────────────────────────────
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     class EDIATHKivyApp(App):
         def __init__(self, backend=None, **kwargs):
             super().__init__(**kwargs)
             self.backend = backend
 
         def build(self):
-<<<<<<< HEAD
             Window.title = "EDIATH AI (Shared LLM Mode)"
-=======
             Window.title = "EDIATH AI"
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             Window.size = (1280, 800)
             sm = ScreenManager()
             dashboard = DashboardScreen(name="dashboard")
@@ -2351,11 +2327,8 @@ def main_interactive() -> None:
                 if init_success:
                     ui_backend.set_response_callback(self._on_ai_response)
                     ui_backend.set_status_callback(self._on_status_update)
-<<<<<<< HEAD
                     logger.info("✅ Backend connected (Shared LLM enabled)")
-=======
                     logger.info("✅ Backend connected")
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
                 else:
                     logger.error("❌ Backend failed: %s", init_error)
 
@@ -2400,7 +2373,6 @@ def main_interactive() -> None:
     logger.info("👋 System shutdown complete")
 
 
-<<<<<<< HEAD
 # ══════════════════════════════════════════════════════════════════════════════
 # ENTRY POINT
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2414,7 +2386,6 @@ if __name__ == "__main__":
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="EDIATH AI System")
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     parser.add_argument(
         "--mode",
         choices=["ui", "backend", "ui-only"],
@@ -2423,7 +2394,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-<<<<<<< HEAD
     print("=" * 70)
     print("EDIATH AI - SINGLETON LLM MODE")
     print("=" * 70)
@@ -2433,8 +2403,6 @@ if __name__ == "__main__":
     print("=" * 70)
     print()
 
-=======
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
     if args.mode == "ui-only":
         run_ui_only()
     elif args.mode == "backend":
@@ -2443,8 +2411,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\nInterrupted by user")
     else:
-<<<<<<< HEAD
         main_interactive()
-=======
-        main_interactive()
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
