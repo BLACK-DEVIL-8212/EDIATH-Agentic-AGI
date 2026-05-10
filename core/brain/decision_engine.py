@@ -235,7 +235,6 @@ class DecisionEngine:
         # Alias for compatibility with callers that use llm_engine
         self.llm_engine = self.llm
 
-<<<<<<< HEAD
     def set_llm_engine(self, llm_engine: Any) -> None:
         """Inject the shared LLM engine instance (single source of truth)."""
         if llm_engine is None:
@@ -244,8 +243,6 @@ class DecisionEngine:
         self.llm_engine = llm_engine
 
 
-=======
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         # Queue / worker (created in start())
         self._decision_queue: Optional[asyncio.Queue] = None
         self._worker_task: Optional[asyncio.Task] = None

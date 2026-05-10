@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 """
 Advanced Intent Classifier for EDIATH (FINAL STABLE VERSION)
 ✔ Queue-safe
@@ -15,14 +11,11 @@ from enum import Enum
 import asyncio
 
 from ..utils.logger import logger
-<<<<<<< HEAD
 # NOTE: Do not import LLMEngine at module import time to avoid triggering model loads.
 # The classifier should receive llm_engine via dependency injection.
 LLMEngine = None
 
-=======
 from ..brain.llm_engine import LLMEngine
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
 
 # ------------------------
@@ -179,27 +172,20 @@ class Intent:
 # CLASSIFIER
 # ------------------------
 class IntentClassifier:
-<<<<<<< HEAD
     def __init__(self, llm_engine=None):
-=======
-    def __init__(self):
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
         try:
             # 🔥 stats
             self.classification_count = 0
 
-<<<<<<< HEAD
             # 🔥 Reuse the shared engine when injected.
             # If not injected, do NOT create a new engine/model here.
             # This keeps startup/load costs low and avoids redundant GGUF loads.
             self.llm = llm_engine
-=======
             # 🔥 LLM (safe init)
             try:
                 self.llm = LLMEngine()
             except Exception:
                 self.llm = None
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 
             # 🔥 rate limiting (prevents spam / overload)
             self._last_call = 0.0
@@ -218,11 +204,8 @@ class IntentClassifier:
 
             # 🔥 safe fallback
             self.classification_count = 0
-<<<<<<< HEAD
             self.llm = llm_engine if llm_engine is not None else None
-=======
             self.llm = None
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
             self._last_call = 0.0
             self.min_delay = 0.5
             self.use_llm_fallback = False

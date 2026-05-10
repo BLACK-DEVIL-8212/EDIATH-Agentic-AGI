@@ -1,5 +1,4 @@
 """
-<<<<<<< HEAD
 Advanced Context Manager - Ultimate Edition (AI Context Intelligence Engine)
 ✔ Multi-layered context (immediate, session, long-term)
 ✔ Time-aware context with decay & expiration
@@ -44,7 +43,8 @@ except ImportError:
     SKLEARN_AVAILABLE = False
 
 from tenacity import retry, stop_after_attempt, wait_exponential
-=======
+
+"""
 Advanced Context Manager - AI Context Intelligence Engine
 """
 
@@ -54,12 +54,10 @@ from datetime import datetime
 
 from tenacity import asyncio
 
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
 from ..utils.logger import logger
 from ..memory import MemoryManager
 
 
-<<<<<<< HEAD
 # ==================== ENUMS ====================
 
 class ContextLayer(Enum):
@@ -1097,7 +1095,6 @@ async def example_usage():
 
 if __name__ == "__main__":
     asyncio.run(example_usage())
-=======
 class ContextEntry:
     def __init__(self, key: str, value: Any, ttl: Optional[int] = None):
         self.key = key
@@ -1244,4 +1241,3 @@ class ContextManager:
 
 
 __all__ = ["ContextManager", "ContextEntry"]
->>>>>>> 7466e01e6018c1528d9953b5299818bf7454f6d7
