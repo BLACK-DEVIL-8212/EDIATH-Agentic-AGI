@@ -1,4 +1,4 @@
-# EDIATH Autonomous AI System
+﻿# EDIATH Autonomous AI System
 
 Production-ready multi-agent AI with:
 - Voice UI + backend
@@ -8,18 +8,17 @@ Production-ready multi-agent AI with:
 - No crashes/loops
 
 ## Quick Start
-```
+```bash
 pip install -e .
-python launcher.py --mode=ui
+python launcher.py --mode ui
 ```
 
 ## Modes
 - `ui` (default): Full voice UI + backend
-- `backend`: Headless orchestrator (10min safe)
-- `ui-only`: Kivy UI only
+- `backend`: Headless orchestrator
 
-## Package
+## Optional Checks
+```bash
+python launcher.py --check-deps
+python scripts/check_syntax.py
 ```
-python -m ediath.cli --mode=backend  # DAG entry
-pytest tests/  # Tests pass
-

@@ -26,15 +26,31 @@ class TaskTracker:
 
     def _init(self):
         self.active_tasks = WeakSet()
-        self.is_shutting_down = False
-        self.pending_shutdown = asyncio.Event()
+        self._is_shutting_down = False
+        self.pending_shutdown = None
 
-        # Background cleanup task
-        self._cleanup_loop = asyncio.create_task(self._background_cleanup())
+        # Created lazily inside a running event loop. Creating tasks at import
+        # time breaks modules that import this registry during normal startup.
+        self._cleanup_loop = None
+
+    def _ensure_cleanup_loop(self):
+        """Start cleanup only when an event loop is already running."""
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            return
+
+        if self.pending_shutdown is None:
+            self.pending_shutdown = asyncio.Event()
+
+        if self._cleanup_loop is None or self._cleanup_loop.done():
+            self._cleanup_loop = loop.create_task(
+                self._background_cleanup(), name="task_tracker_cleanup"
+            )
 
     async def _background_cleanup(self):
         """Clean up completed tasks periodically"""
-        while not self.is_shutting_down:
+        while not self._is_shutting_down:
             try:
                 await asyncio.sleep(5.0)
                 # WeakSet auto-cleans dead refs, but log periodically
@@ -45,9 +61,12 @@ class TaskTracker:
 
     def create_task(self, coro: Any, *, name: str = None, **kwargs) -> asyncio.Task:
         """Create tracked task"""
-        if self.is_shutting_down:
+        if self._is_shutting_down:
+            if hasattr(coro, "close"):
+                coro.close()
             raise RuntimeError("Cannot create tasks during shutdown")
 
+        self._ensure_cleanup_loop()
         task = asyncio.create_task(coro, name=name, **kwargs)
         self.active_tasks.add(task)
 
@@ -62,17 +81,19 @@ class TaskTracker:
 
     async def cancel_all_tasks(self):
         """Cancel all tracked tasks"""
-        if self.is_shutting_down:
+        if self._is_shutting_down:
             return
 
-        self.is_shutting_down = True
-        self.pending_shutdown.set()
+        self._is_shutting_down = True
+        if self.pending_shutdown is not None:
+            self.pending_shutdown.set()
 
         # Cancel cleanup loop
         if hasattr(self, "_cleanup_loop") and self._cleanup_loop:
             self._cleanup_loop.cancel()
             try:
-                await self._cleanup_loop
+                if self._cleanup_loop.get_loop() is asyncio.get_running_loop():
+                    await self._cleanup_loop
             except asyncio.CancelledError:
                 pass
 
@@ -96,12 +117,13 @@ class TaskTracker:
 
     def initiate_shutdown(self):
         """Initiate shutdown sequence"""
-        self.is_shutting_down = True
-        self.pending_shutdown.set()
+        self._is_shutting_down = True
+        if self.pending_shutdown is not None:
+            self.pending_shutdown.set()
 
     def is_shutting_down(self) -> bool:
         """Check if shutdown initiated"""
-        return self.is_shutting_down
+        return self._is_shutting_down
 
 
 # Global instance

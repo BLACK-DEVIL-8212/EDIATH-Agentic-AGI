@@ -8,8 +8,8 @@ version = "0.1.0"
 description = "EDIATH Autonomous AI System"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
-authors = [{name = "EDIATH AI", email = "dev@ediath.ai"}]
+license = { file = "LICENSE" }
+authors = [{ name = "EDIATH AI", email = "dev@ediath.ai" }]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -17,10 +17,8 @@ classifiers = [
 ]
 
 dependencies = [
-    # Core (from requirements.txt, pinned)
     "pydantic[email]>=2.5.0",
     "tenacity>=8.2.0",
-    # ... (full list in setup.py install_requires)
 ]
 
 [project.optional-dependencies]
@@ -34,13 +32,12 @@ dev = [
 ]
 
 [project.scripts]
-cli = "ediath.cli:main"
-ui = "ediath.ui_app:main"
-backend = "ediath.backend:main"
+ediath = "launcher:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
-include = ["ediath*"]
+where = ["."]
+include = ["core*", "api*", "config*", "webui*"]
+exclude = ["data*", "models*", "logs*", "checkpoints*", "generated_projects*"]
 
 [tool.black]
 line-length = 88
@@ -51,10 +48,8 @@ warn_return_any = true
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "-v --cov=src/ediath --cov-report=html --cov-report=term-missing"
-
+addopts = "-v"

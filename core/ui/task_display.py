@@ -91,6 +91,9 @@ class TaskDisplay(BoxLayout):
     # ─────────────────────────────
     def connect_backend(self, controller):
         self.controller = controller
+        backend = getattr(controller, "backend", controller)
+        if not hasattr(backend, "set_status_callback"):
+            return
 
         def on_status(text):
             text_lower = text.lower()
@@ -106,5 +109,4 @@ class TaskDisplay(BoxLayout):
             elif "error" in text_lower:
                 self.update_task(status="error")
 
-        if controller and controller.backend:
-            controller.backend.set_status_callback(on_status)
+        backend.set_status_callback(on_status)

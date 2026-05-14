@@ -2339,7 +2339,25 @@ class MemoryManager:
 # GLOBAL INSTANCE
 # #================#================#============#=============
 
-memory_manager = MemoryManager()
+_memory_manager_instance: Optional[MemoryManager] = None
+
+
+def get_memory_manager() -> MemoryManager:
+    """Return the singleton memory manager without constructing it at import."""
+    global _memory_manager_instance
+    if _memory_manager_instance is None:
+        _memory_manager_instance = MemoryManager()
+    return _memory_manager_instance
+
+
+class _LazyMemoryManager:
+    """Proxy that keeps the old memory_manager API lazy and import-safe."""
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(get_memory_manager(), name)
+
+
+memory_manager = _LazyMemoryManager()
 
 # #================#================#============#=============
 # CONVENIENCE FUNCTIONS
@@ -2376,6 +2394,7 @@ __all__ = [
     "MemoryOperationResult",
     "MemoryStats",
     "memory_manager",
+    "get_memory_manager",
     "quick_store",
     "quick_retrieve",
     "quick_search",

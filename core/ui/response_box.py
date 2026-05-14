@@ -98,8 +98,11 @@ class ResponseBox(BoxLayout):
     # ─────────────────────────────
     def connect_backend(self, controller):
         self.controller = controller
+        backend = getattr(controller, "backend", controller)
+        if not hasattr(backend, "set_response_callback"):
+            return
 
         def on_response(text):
             self.set_response(text)
 
-        controller.backend.set_response_callback(on_response)
+        backend.set_response_callback(on_response)

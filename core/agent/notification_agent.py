@@ -17,10 +17,11 @@ import hashlib
 
 # Desktop notifications
 try:
-    from plyer import notification
+    from plyer import notification as plyer_notification
 
     PLYER_AVAILABLE = True
 except ImportError:
+    plyer_notification = None  # type: ignore
     PLYER_AVAILABLE = False
 
 try:
@@ -181,7 +182,7 @@ class NotificationAgent:
         # Load templates
         self._load_templates()
 
-        # Start queue processor
+        # Start queue processor (deferred safely if no running loop)
         self.start_queue_processor()
 
         self.logger.info("Notification Agent initialized")
@@ -320,6 +321,8 @@ class NotificationAgent:
         Returns:
             Dictionary with notification result
         """
+        self._ensure_queue_processor()
+
         # Apply template if specified
         if template_name and template_name in self.templates:
             template = self.templates[template_name]
@@ -492,7 +495,7 @@ class NotificationAgent:
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(
                 None,
-                lambda: notification.notify(
+                lambda: plyer_notification.notify(
                     title=notification.title,
                     message=notification.message,
                     app_name="EDIATH",
@@ -990,9 +993,24 @@ class NotificationAgent:
     def start_queue_processor(self):
         """Start the notification queue processor"""
         if not self.processing:
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                self.processing = False
+                self.logger.warning(
+                    "Notification queue processor deferred: no running event loop."
+                )
+                return
+
             self.processing = True
             self.queue_worker = asyncio.create_task(self._process_queue())
             self.logger.info("Notification queue processor started")
+
+    def _ensure_queue_processor(self):
+        """Ensure queue processor is running when called from async context."""
+        if self.processing and self.queue_worker and not self.queue_worker.done():
+            return
+        self.start_queue_processor()
 
     async def stop_queue_processor(self):
         """Stop the notification queue processor"""
@@ -1039,6 +1057,7 @@ class NotificationAgent:
         Returns:
             Dictionary with queuing result
         """
+        self._ensure_queue_processor()
         await self.notification_queue.put(notification_data)
 
         return {

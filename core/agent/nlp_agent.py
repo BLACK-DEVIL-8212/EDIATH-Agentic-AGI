@@ -13,6 +13,7 @@ from enum import Enum
 from dataclasses import dataclass
 import logging
 from collections import Counter
+from pathlib import Path
 
 # GGUF Model for embeddings and NLP
 try:

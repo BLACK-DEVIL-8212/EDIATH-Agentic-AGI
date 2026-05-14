@@ -52,8 +52,6 @@ from typing import Any, Dict, List, Optional, Deque
 from collections import deque
 from datetime import datetime
 
-from tenacity import asyncio
-
 from ..utils.logger import logger
 from ..memory import MemoryManager
 

@@ -135,9 +135,11 @@ class StatusBar(BoxLayout):
     # ─────────────────────────────
     def connect_backend(self, controller):
         self.controller = controller
+        backend = getattr(controller, "backend", controller)
+        if not hasattr(backend, "set_status_callback"):
+            return
 
         def on_status(text):
             self.update_status(text)
 
-        if controller and controller.backend:
-            controller.backend.set_status_callback(on_status)
+        backend.set_status_callback(on_status)

@@ -38,9 +38,19 @@ except ImportError:
     NUMPY_AVAILABLE = False
 
 from ..utils.logger import logger
-from ..brain.llm_engine import LLMEngine
 from ..agent.action_router import ActionRouter
-from ..memory import MemoryManager
+
+
+def _create_llm_engine():
+    from ..brain.llm_engine import LLMEngine
+
+    return LLMEngine()
+
+
+def _create_memory_manager():
+    from ..memory.memory_manager import MemoryManager
+
+    return MemoryManager()
 
 
 # ==================== ENUMS ====================
@@ -436,9 +446,9 @@ class GoalManager:
         self.completion_times: List[float] = []
         
         # Components
-        self.llm = LLMEngine()
+        self.llm = _create_llm_engine()
         self.router = ActionRouter()
-        self.memory = MemoryManager()
+        self.memory = _create_memory_manager()
         
         # State
         self._running = False

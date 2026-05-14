@@ -199,17 +199,24 @@ class NetworkAgent:
         self.request_transformers: List[Callable] = []
         self.response_transformers: List[Callable] = []
 
-        # Initialize default session
-        self._init_default_session()
+        # Initialize default session lazily from async context.
+        # Creating aiohttp sessions outside a running event loop can crash.
+        self.default_session = None
 
-        # Start queue workers if enabled
+        # Start queue workers only if an event loop is already running.
         if self.queue_enabled:
             self._start_queue_workers()
 
         self.logger.info("Network Agent initialized")
 
-    def _init_default_session(self):
-        """Initialize default HTTP session"""
+    def _init_default_session(self) -> bool:
+        """Initialize default HTTP session if a loop is running."""
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            self.default_session = None
+            return False
+
         connector = aiohttp.TCPConnector(
             limit=self.config.get("connection_limit", 100),
             limit_per_host=self.config.get("connection_limit_per_host", 30),
@@ -222,6 +229,7 @@ class NetworkAgent:
         self.default_session = aiohttp.ClientSession(
             connector=connector, timeout=timeout, headers=self.default_headers
         )
+        return True
 
     async def get_session(self, session_name: str = "default") -> aiohttp.ClientSession:
         """
@@ -234,6 +242,12 @@ class NetworkAgent:
             ClientSession instance
         """
         if session_name == "default":
+            if self.default_session is None or self.default_session.closed:
+                self._init_default_session()
+            if self.default_session is None:
+                raise RuntimeError(
+                    "No running event loop available to initialize default network session"
+                )
             return self.default_session
 
         if session_name not in self.sessions:
@@ -726,6 +740,9 @@ class NetworkAgent:
         if not self.queue_enabled:
             return {"success": False, "error": "Queue not enabled"}
 
+        if not self.queue_workers:
+            self._start_queue_workers()
+
         request_id = self._generate_request_id(
             request_config.get("method", "GET"), request_config.get("url", "")
         )
@@ -771,6 +788,15 @@ class NetworkAgent:
 
     def _start_queue_workers(self):
         """Start queue worker tasks"""
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            self.logger.warning(
+                "Queue workers requested but no running event loop is available; "
+                "workers will start when queue is used from async context."
+            )
+            return
+
         for _ in range(self.queue_workers_count):
             worker = asyncio.create_task(self._process_queue())
             self.queue_workers.append(worker)
@@ -1166,7 +1192,8 @@ class NetworkAgent:
             "success_rate": success_rate,
             "history_size": len(self.request_history),
             "cache_size": len(self.response_cache),
-            "active_sessions": len(self.sessions) + 1,
+            "active_sessions": len(self.sessions)
+            + (1 if self.default_session and not self.default_session.closed else 0),
             "active_circuit_breakers": len(self.circuit_breakers),
             "queue_size": self.request_queue.qsize() if self.queue_enabled else 0,
         }

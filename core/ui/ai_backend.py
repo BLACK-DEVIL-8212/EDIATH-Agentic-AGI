@@ -21,6 +21,8 @@ class AIBackend:
     def __init__(self):
         self.system: Optional[Any] = None
         self.loop: Optional[asyncio.AbstractEventLoop] = None
+        # Compatibility: some UI widgets expect `controller.backend`.
+        self.backend = self
 
         # Support multiple callbacks (UI components may register independently)
         self._response_callbacks: List[Callable[[str], None]] = []
@@ -42,6 +44,10 @@ class AIBackend:
 
         self._initialized = False
         self._running = False
+
+    def send_message(self, text: str, *args, **kwargs):
+        """Backward-compatible alias used by older UI wiring."""
+        self.send_user_message(text)
 
     # ─────────────────────────────────────────────────────────────────
     # CONNECT TO REAL SYSTEM  (called by main.py init thread)

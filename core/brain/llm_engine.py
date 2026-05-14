@@ -608,29 +608,48 @@ class GGUFProvider(LLMProvider):
                 logger.error(f"Model file not found: {model_path}")
                 return
 
-            use_gpu = _cuda_available()
+            use_gpu = (
+                _cuda_available()
+                and os.environ.get("EDIATH_FORCE_CPU_LLM", "0") != "1"
+            )
             n_gpu = min(max(0, GPU_LAYERS_DEFAULT) if use_gpu else 0, GPU_LAYERS_MAX)
-            logger.info(f"GPU layers: {n_gpu} ({'CUDA' if use_gpu else 'CPU-only'})")
-
-            try:
-                model = Llama(
-                    model_path=resolved,
-                    n_ctx=1024,
-                    n_batch=64,
-                    n_threads=max(2, (os.cpu_count() or 4) // 2),
-                    n_gpu_layers=n_gpu,
-                    use_mmap=True,
-                    use_mlock=False,
-                    logits_all=False,
-                    embedding=False,
-                    verbose=False,
+            attempts = [(n_gpu, "CUDA" if use_gpu else "CPU-only")]
+            allow_cpu_fallback = (
+                os.environ.get("EDIATH_ALLOW_CPU_LLM_FALLBACK", "0") == "1"
+            )
+            if n_gpu > 0 and allow_cpu_fallback:
+                attempts.append((0, "CPU fallback"))
+            elif n_gpu > 0:
+                logger.warning(
+                    "CPU model fallback skipped; set EDIATH_ALLOW_CPU_LLM_FALLBACK=1 to enable it"
                 )
-                _shared_model = model
-                self.model = model
-                logger.info("GGUF model loaded (warmup deferred)")
-            except Exception as exc:
-                logger.error(f"Model load failed: {exc}")
-                self.model = None
+
+            last_error = None
+            for layers, label in attempts:
+                logger.info(f"GPU layers: {layers} ({label})")
+                try:
+                    model = Llama(
+                        model_path=resolved,
+                        n_ctx=1024,
+                        n_batch=64,
+                        n_threads=max(2, (os.cpu_count() or 4) // 2),
+                        n_gpu_layers=layers,
+                        use_mmap=True,
+                        use_mlock=False,
+                        logits_all=False,
+                        embedding=False,
+                        verbose=False,
+                    )
+                    _shared_model = model
+                    self.model = model
+                    logger.info("GGUF model loaded (warmup deferred)")
+                    return
+                except Exception as exc:
+                    last_error = exc
+                    logger.warning(f"Model load failed with {label}: {exc}")
+
+            logger.error(f"Model load failed after all attempts: {last_error}")
+            self.model = None
 
     def _is_garbage_response(self, text: str) -> bool:
         if not text or len(text.strip()) < 2:

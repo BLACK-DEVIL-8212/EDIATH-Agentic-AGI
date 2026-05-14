@@ -29,25 +29,33 @@ class Controller:
         self._orchestrator = None
         self._available = False
 
-        # try to import orchestrator lazily
-        try:
-            from core.system.orchestrator import EDIATHOrchestrator
+    def _ensure_orchestrator(self) -> bool:
+        """Load the orchestrator only when the UI actually sends a backend call."""
+        if self._orchestrator is not None:
+            return True
 
-            # try to get a running instance or create one
+        with self._lock:
+            if self._orchestrator is not None:
+                return True
+
             try:
-                # some codebases expose a singleton getter
-                self._orchestrator = EDIATHOrchestrator.get_instance()
-            except Exception:
+                from core.system.orchestrator import EDIATHOrchestrator
+
                 try:
-                    self._orchestrator = EDIATHOrchestrator()
+                    self._orchestrator = EDIATHOrchestrator.get_instance()
                 except Exception:
-                    self._orchestrator = None
-            self._available = self._orchestrator is not None
-        except Exception:
-            self._available = False
+                    try:
+                        self._orchestrator = EDIATHOrchestrator()
+                    except Exception:
+                        self._orchestrator = None
+                self._available = self._orchestrator is not None
+            except Exception:
+                self._available = False
+
+        return self._available
 
     def _safe_call(self, fn_name: str, *args, **kwargs):
-        if not self._available or self._orchestrator is None:
+        if not self._ensure_orchestrator() or self._orchestrator is None:
             return {"error": "orchestrator_unavailable"}
         try:
             fn = getattr(self._orchestrator, fn_name, None)

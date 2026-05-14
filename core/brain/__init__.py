@@ -1,61 +1,42 @@
+"""Brain modules for EDIATH.
+
+The brain package contains heavy optional systems. Keep package import light and
+load individual components only when callers request them.
 """
-Brain modules - cognitive systems for EDIATH.
-(UPDATED - FULLY SAFE, NO REMOVALS)
-"""
 
-# ------------------------
-# CONTEXT MANAGER
-# ------------------------
-try:
-    from .context_manager import ContextManager, ContextEntry
-except Exception:
-    ContextManager = None
-    ContextEntry = None
+from importlib import import_module
 
 
-# ------------------------
-# LLM ENGINE
-# ------------------------
-try:
-    from ..brain.llm_engine import LLMEngine, LLMProvider
-except Exception:
-    LLMEngine = None
-    LLMProvider = None
+_LAZY_EXPORTS = {
+    "ContextManager": (".context_manager", "ContextManager"),
+    "ContextEntry": (".context_manager", "ContextEntry"),
+    "LLMEngine": (".llm_engine", "LLMEngine"),
+    "LLMProvider": (".llm_engine", "LLMProvider"),
+    "ReasoningEngine": (".reasoning_engine", "ReasoningEngine"),
+    "ReasoningChain": (".reasoning_engine", "ReasoningChain"),
+    "ReasoningStrategy": (".reasoning_engine", "ReasoningStrategy"),
+    "ReasoningStep": (".reasoning_engine", "ReasoningStep"),
+    "DecisionEngine": (".decision_engine", "DecisionEngine"),
+    "Decision": (".decision_engine", "Decision"),
+    "DecisionType": (".decision_engine", "DecisionType"),
+    "Option": (".decision_engine", "Option"),
+}
 
 
-# ------------------------
-# REASONING ENGINE
-# ------------------------
-try:
-    from .reasoning_engine import (
-        ReasoningEngine,
-        ReasoningChain,
-        ReasoningStrategy,
-        ReasoningStep,
-    )
-except Exception:
-    ReasoningEngine = None
-    ReasoningChain = None
-    ReasoningStrategy = None
-    ReasoningStep = None
+def __getattr__(name):
+    if name not in _LAZY_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    module_name, attr_name = _LAZY_EXPORTS[name]
+    try:
+        value = getattr(import_module(module_name, __name__), attr_name)
+    except Exception:
+        value = None
+
+    globals()[name] = value
+    return value
 
 
-# ------------------------
-# DECISION ENGINE (CRITICAL SAFE IMPORT)
-# ------------------------
-try:
-    from .decision_engine import DecisionEngine, Decision, DecisionType, Option
-except Exception:
-    # 🔥 DO NOT CRASH SYSTEM
-    DecisionEngine = None
-    Decision = None
-    DecisionType = None
-    Option = None
-
-
-# ------------------------
-# EXPORTS (UNCHANGED)
-# ------------------------
 __all__ = [
     "ContextManager",
     "ContextEntry",

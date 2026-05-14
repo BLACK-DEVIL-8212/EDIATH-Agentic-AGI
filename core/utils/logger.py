@@ -3,6 +3,7 @@
 """
 
 import os
+import sys
 
 # Disable Kivy logging BEFORE importing anything Kivy-related
 os.environ["KIVY_NO_FILELOG"] = "1"
@@ -96,10 +97,36 @@ class EDIATHLogger:
             self.logger.remove()  # Remove default handlers
 
             # Add console handler ONLY to stdout (not stderr)
-            import sys
+            try:
+                if hasattr(sys.stdout, "reconfigure"):
+                    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+            class SafeStream:
+                def __init__(self, stream):
+                    self.stream = stream
+
+                def write(self, message):
+                    try:
+                        self.stream.write(message)
+                    except UnicodeEncodeError:
+                        encoding = getattr(self.stream, "encoding", None) or "utf-8"
+                        safe = str(message).encode(
+                            encoding, errors="replace"
+                        ).decode(encoding, errors="replace")
+                        self.stream.write(safe)
+
+                def flush(self):
+                    try:
+                        self.stream.flush()
+                    except Exception:
+                        pass
+
+            self._console_sink = SafeStream(sys.stdout)
 
             self.logger.add(
-                sys.stdout,
+                self._console_sink,
                 format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
                 level="INFO",
                 colorize=True,
@@ -113,6 +140,7 @@ class EDIATHLogger:
                 format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
                 level="DEBUG",
                 rotation="10 MB",
+                encoding="utf-8",
                 catch=True,
             )
         except Exception as e:
@@ -152,11 +180,19 @@ class EDIATHLogger:
                 getattr(self.logger, level, self.logger.info)(msg)
             else:
                 # Simple print fallback
-                print(f"[{level.upper()}] {msg}")
+                encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+                safe = str(msg).encode(
+                    encoding, errors="replace"
+                ).decode(encoding, errors="replace")
+                print(f"[{level.upper()}] {safe}")
         except Exception:
             # Ultimate fallback
             try:
-                print(f"[{level.upper()}] {message}")
+                encoding = getattr(sys.stdout, "encoding", None) or "utf-8"
+                safe = str(message).encode(
+                    encoding, errors="replace"
+                ).decode(encoding, errors="replace")
+                print(f"[{level.upper()}] {safe}")
             except Exception:
                 pass
         finally:

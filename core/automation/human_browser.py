@@ -28,6 +28,11 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from enum import Enum
 import hashlib
+import sys
+import os
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ..utils.logger import logger
 from .chrome_controller import ChromeController
@@ -371,7 +376,7 @@ class HumanBrowser:
         Initialize Human Browser
         
         Args:
-            headless: Run browser in headless mode
+            headless: Run browser in headless mode (Note: ChromeController uses headless parameter via config)
             user_data_dir: Directory for persistent session data
             session_persistence: Save/load session between runs
             use_ai_for_links: Use LLM for intelligent link selection
@@ -381,7 +386,17 @@ class HumanBrowser:
             max_concurrent_tabs: Maximum number of tabs to keep open
             screenshot_on_action: Take screenshot on each action
         """
-        self.browser = ChromeController(headless=headless)
+        # Store parameters for later use
+        self.headless = headless
+        self.browser = ChromeController()  # ChromeController doesn't accept headless param
+        # Set headless mode after initialization if needed
+        if headless:
+            # Try to set headless mode through config if available
+            if hasattr(self.browser, 'set_headless'):
+                self.browser.set_headless(headless)
+            elif hasattr(self.browser, 'headless'):
+                self.browser.headless = headless
+        
         self.behavior = HumanBehavior()
         self.profile = profile
         self.eye_movement = eye_movement
@@ -468,8 +483,12 @@ class HumanBrowser:
                 json.dump(session_data, f, indent=2)
             
             # Save cookies and storage via browser context
-            if self.browser.context:
-                storage = await self.browser.context.storage_state(path=Path(self.user_data_dir) / "storage.json")
+            if hasattr(self.browser, 'context') and self.browser.context:
+                try:
+                    storage_path = Path(self.user_data_dir) / "storage.json"
+                    await self.browser.context.storage_state(path=storage_path)
+                except Exception as e:
+                    logger.debug(f"Failed to save storage state: {e}")
             
             logger.debug(f"Session saved to {self.user_data_dir}")
             
@@ -507,10 +526,13 @@ class HumanBrowser:
             
             # Load storage state
             storage_path = Path(self.user_data_dir) / "storage.json"
-            if storage_path.exists() and self.browser.context:
-                with open(storage_path, "r") as f:
-                    storage_state = json.load(f)
-                await self.browser.context.add_cookies(storage_state.get("cookies", []))
+            if storage_path.exists() and hasattr(self.browser, 'context') and self.browser.context:
+                try:
+                    with open(storage_path, "r") as f:
+                        storage_state = json.load(f)
+                    await self.browser.context.add_cookies(storage_state.get("cookies", []))
+                except Exception as e:
+                    logger.debug(f"Failed to load storage state: {e}")
                 
         except Exception as e:
             logger.debug(f"Session load failed: {e}")
@@ -523,6 +545,10 @@ class HumanBrowser:
         await self._load_session()
         self.session_start = datetime.now()
         logger.info("🧑‍💻 Human browser started")
+        
+        # Get current page after start
+        if hasattr(self.browser, 'page') and self.browser.page:
+            self.current_url = self.browser.page.url
     
     async def stop(self):
         """Stop the human browser and save session"""
@@ -550,7 +576,6 @@ class HumanBrowser:
                 
         elif self.eye_movement == EyeMovement.FOCUSED and target_area:
             # Focus on specific area
-            x, y, width, height = target_area
             fixations = random.randint(3, 7)
             for _ in range(fixations):
                 await asyncio.sleep(self.behavior.fixation_duration() * 1.5)
@@ -579,6 +604,9 @@ class HumanBrowser:
     ) -> Optional[Tuple[int, int]]:
         """Simulate realistic mouse movement to element"""
         try:
+            if not hasattr(self.browser, 'page') or not self.browser.page:
+                return None
+                
             # Get element position
             element = await self.browser.page.query_selector(selector)
             if not element:
@@ -685,6 +713,9 @@ class HumanBrowser:
     
     async def scroll(self, direction: str = "down", amount: Optional[int] = None):
         """Scroll with human-like behavior and inertia"""
+        if not hasattr(self.browser, 'page') or not self.browser.page:
+            return
+            
         if amount is None:
             amount = self.behavior.scroll_amount(self.profile)
         
@@ -772,7 +803,9 @@ class HumanBrowser:
         
         # Screenshot if enabled
         if self.screenshot_on_action:
-            await self.browser.screenshot(f"screenshots/click_{datetime.now().strftime('%H%M%S')}.png")
+            screenshot_dir = Path("screenshots")
+            screenshot_dir.mkdir(exist_ok=True)
+            await self.browser.screenshot(str(screenshot_dir / f"click_{datetime.now().strftime('%H%M%S')}.png"))
         
         return True
     
@@ -804,6 +837,9 @@ class HumanBrowser:
         clear_first: bool = True
     ):
         """Type text with realistic typing speed and mistakes"""
+        if not hasattr(self.browser, 'page') or not self.browser.page:
+            return {"characters": 0, "mistakes": 0, "duration_ms": 0}
+            
         start_time = datetime.now()
         
         # Move to field
@@ -889,13 +925,17 @@ class HumanBrowser:
     
     async def new_tab(self, url: Optional[str] = None):
         """Open new tab with human-like behavior"""
+        if not hasattr(self.browser, 'context') or not self.browser.context:
+            return None
+            
         # Open new tab
-        await self.browser.context.new_page()
+        new_page = await self.browser.context.new_page()
         self.tab_counter += 1
         
         # Switch to new tab
         pages = self.browser.context.pages
         self.current_tab_id = len(pages) - 1
+        self.browser.page = new_page
         
         # Navigate if URL provided
         if url:
@@ -906,12 +946,15 @@ class HumanBrowser:
         # Manage tab limit
         if len(pages) > self.max_concurrent_tabs:
             # Close oldest tab
-            await self.browser.context.pages[0].close()
+            await pages[0].close()
         
         return self.current_tab_id
     
     async def switch_tab(self, index: int):
         """Switch to different tab"""
+        if not hasattr(self.browser, 'context') or not self.browser.context:
+            return False
+            
         pages = self.browser.context.pages
         
         if 0 <= index < len(pages):
@@ -930,6 +973,9 @@ class HumanBrowser:
     
     async def close_tab(self, index: Optional[int] = None):
         """Close tab"""
+        if not hasattr(self.browser, 'context') or not self.browser.context:
+            return False
+            
         if index is None:
             index = self.current_tab_id
         
@@ -1180,6 +1226,9 @@ Return ONLY the link number (1-{len(links)}). No explanation.
     
     async def look_around(self):
         """Simulate looking around the page (mouse movements without clicking)"""
+        if not hasattr(self.browser, 'page') or not self.browser.page:
+            return
+            
         viewport = await self.browser.page.evaluate("window.visualViewport")
         width = viewport['width']
         height = viewport['height']
@@ -1200,6 +1249,9 @@ Return ONLY the link number (1-{len(links)}). No explanation.
     
     async def download_file(self, url: str, save_path: Optional[str] = None):
         """Download file with human-like behavior"""
+        if not hasattr(self.browser, 'page') or not self.browser.page:
+            return None
+            
         await self._hesitate("download")
         
         async with self.browser.page.expect_download() as download_info:
@@ -1309,7 +1361,7 @@ Return ONLY the link number (1-{len(links)}). No explanation.
                 "eye_fixations": len(self.eye_fixations),
                 "downloads": len(self.downloads),
                 "session_persistence": self.session_persistence,
-                "tab_count": len(self.browser.context.pages) if self.browser.context else 0
+                "tab_count": len(self.browser.context.pages) if hasattr(self.browser, 'context') and self.browser.context else 0
             },
             "history": {
                 "history_depth": len(self.page_history),
@@ -1346,6 +1398,11 @@ Return ONLY the link number (1-{len(links)}). No explanation.
             json.dump(session_data, f, indent=2)
         
         logger.info(f"Session exported to {filepath}")
+    
+    async def screenshot(self, path: str = "screenshot.png"):
+        """Take a screenshot"""
+        await self.browser.screenshot(path)
+        return path
 
 
 # ==================== WRAPPER FOR EDIATH ====================
@@ -1436,3 +1493,50 @@ class HumanBrowserWrapper:
                 request.get("product", ""),
                 max_pages=request.get("max_pages", 8)
             )
+            return {"success": True}
+        
+        elif action == "go_back":
+            success = await self.browser.go_back()
+            return {"success": success}
+        
+        elif action == "go_forward":
+            success = await self.browser.go_forward()
+            return {"success": success}
+        
+        elif action == "new_tab":
+            tab_id = await self.browser.new_tab(request.get("url"))
+            return {"success": True, "tab_id": tab_id}
+        
+        elif action == "switch_tab":
+            success = await self.browser.switch_tab(request.get("index", 0))
+            return {"success": success}
+        
+        elif action == "fill_form":
+            results = await self.browser.fill_form(
+                request.get("fields", {}),
+                pause_between_fields=request.get("pause_between_fields")
+            )
+            return {"success": True, "results": results}
+        
+        elif action == "wait":
+            await self.browser.wait(request.get("seconds", 1.0))
+            return {"success": True}
+        
+        elif action == "take_break":
+            await self.browser.take_break(request.get("duration"))
+            return {"success": True}
+        
+        elif action == "get_stats":
+            stats = await self.browser.get_stats()
+            return {"success": True, "stats": stats}
+        
+        elif action == "export_session":
+            await self.browser.export_session(request.get("filepath", "session_export.json"))
+            return {"success": True}
+        
+        elif action == "screenshot":
+            path = await self.browser.screenshot(request.get("path", "screenshot.png"))
+            return {"success": True, "path": path}
+        
+        else:
+            return {"success": False, "error": f"Unknown action: {action}"}

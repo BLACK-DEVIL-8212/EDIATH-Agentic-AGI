@@ -20,6 +20,8 @@ Advanced Background Thinker - Ultimate Edition (MAXIMUM FEATURES)
 ✔ Export capabilities (JSON, CSV, Markdown)
 """
 
+from __future__ import annotations
+
 import asyncio
 import time
 import hashlib
@@ -50,8 +52,18 @@ except ImportError:
     SKLEARN_AVAILABLE = False
 
 from ..utils.logger import logger
-from ..brain.llm_engine import LLMEngine
-from ..memory import MemoryManager
+
+
+def _create_llm_engine():
+    from ..brain.llm_engine import LLMEngine
+
+    return LLMEngine()
+
+
+def _create_memory_manager():
+    from ..memory.memory_manager import MemoryManager
+
+    return MemoryManager()
 
 
 # ==================== ENUMS ====================
@@ -430,8 +442,8 @@ class BackgroundThinker:
         self.system = system
         
         # Core components
-        self.llm = getattr(system, "llm_engine", None) or LLMEngine()
-        self.memory = getattr(system, "memory", MemoryManager())
+        self.llm = getattr(system, "llm_engine", None) or _create_llm_engine()
+        self.memory = getattr(system, "memory", None) or _create_memory_manager()
         
         # Queues and storage
         self.queue: List[Tuple[int, int, ThinkingTask]] = []

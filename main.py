@@ -1979,6 +1979,7 @@ def main_interactive() -> None:
     from core.ui.ai_backend import AIBackend
 
     ui_backend = AIBackend()
+    ui_backend.start()
 
     init_success = False
     init_error = None

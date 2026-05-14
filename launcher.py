@@ -36,7 +36,7 @@ def setup_signal_handlers():
 # =========================
 def get_model_path():
     """Get the correct model path with fallback options"""
-    base_path = Path("E:/EDIATH/models/EDIATH-q4_k_m.gguf")
+    base_path = Path(__file__).resolve().parent / "models" / "EDIATH-q4_k_m.gguf"
     alt_path = Path("C:/models/EDIATH-q4_k_m.gguf")
     local_path = Path("./models/EDIATH-q4_k_m.gguf")
     

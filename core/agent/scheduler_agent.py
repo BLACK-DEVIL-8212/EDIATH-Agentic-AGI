@@ -184,7 +184,7 @@ class SchedulerAgent:
         if self.persist_enabled:
             self._load_data()
 
-        # Start workers
+        # Start workers if an event loop is active; otherwise defer.
         self._start_workers()
 
         self.logger.info("Scheduler Agent initialized")
@@ -587,6 +587,8 @@ class SchedulerAgent:
         Returns:
             Dictionary with schedule creation result
         """
+        self._ensure_workers_started()
+
         schedule_id = self._generate_id()
         now = self._get_current_time()
 
@@ -746,6 +748,8 @@ class SchedulerAgent:
         Returns:
             Dictionary with schedule creation result
         """
+        self._ensure_workers_started()
+
         # Create schedule that runs once at specified time
         schedule_id = self._generate_id()
         now = self._get_current_time()
@@ -870,6 +874,8 @@ class SchedulerAgent:
         Returns:
             Dictionary with resume result
         """
+        self._ensure_workers_started()
+
         if schedule_id not in self.schedules:
             return {"success": False, "error": f"Schedule {schedule_id} not found"}
 
@@ -1116,9 +1122,24 @@ class SchedulerAgent:
 
     def _start_workers(self):
         """Start worker tasks"""
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            self.running = False
+            self.logger.warning(
+                "Scheduler workers deferred: no running event loop."
+            )
+            return
+
         self.running = True
         self.scheduler_task = asyncio.create_task(self._process_schedules())
         self.logger.info("Scheduler started")
+
+    def _ensure_workers_started(self):
+        """Start workers lazily when invoked from an async context."""
+        if self.running and self.scheduler_task and not self.scheduler_task.done():
+            return
+        self._start_workers()
 
     async def _stop_workers(self):
         """Stop worker tasks"""

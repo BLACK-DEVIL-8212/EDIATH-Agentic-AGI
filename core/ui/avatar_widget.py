@@ -284,6 +284,9 @@ class AvatarWidget(Widget):
     # BACKEND LINK
     # ─────────────────────────────
     def connect_backend(self, controller):
+        backend = getattr(controller, "backend", controller)
+        if not hasattr(backend, "set_status_callback"):
+            return
 
         def on_status(text):
             text = text.lower()
@@ -300,8 +303,7 @@ class AvatarWidget(Widget):
             elif "error" in text:
                 self.set_mood("neutral")
 
-        if hasattr(controller, "backend"):
-            controller.backend.set_status_callback(on_status)
+        backend.set_status_callback(on_status)
 
     # ─────────────────────────────
     def on_touch_down(self, touch):

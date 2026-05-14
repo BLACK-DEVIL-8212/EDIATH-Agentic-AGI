@@ -16,7 +16,12 @@ import time
 from datetime import datetime
 from core.utils.logger import logger
 from .shared_memory import SharedVisionMemory
-from core.brain.cnn_engine import CNNEngine
+
+
+def _create_cnn_engine(config: Dict[str, Any]):
+    from core.brain.cnn_engine import CNNEngine
+
+    return CNNEngine(config)
 
 
 class VisionEngine:
@@ -154,7 +159,7 @@ class VisionEngine:
                         "input_size": self.config.get("cnn_input_size", 224),
                     }
 
-                    self.cnn_engine = CNNEngine(cnn_config)
+                    self.cnn_engine = _create_cnn_engine(cnn_config)
                     await self.cnn_engine.start()
 
                     if hasattr(self, "logger"):

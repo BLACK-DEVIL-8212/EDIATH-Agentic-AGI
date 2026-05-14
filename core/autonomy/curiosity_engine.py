@@ -21,8 +21,18 @@ from datetime import datetime
 from dataclasses import dataclass, field
 
 from ..utils.logger import logger
-from ..automation.web_researcher import WebResearcher
-from ..memory import MemoryManager
+
+
+def _create_web_researcher():
+    from ..automation.web_researcher import WebResearcher
+
+    return WebResearcher()
+
+
+def _create_memory_manager():
+    from ..memory.memory_manager import MemoryManager
+
+    return MemoryManager()
 
 
 class CuriosityType(Enum):
@@ -99,13 +109,13 @@ class CuriosityEngine:
 
         # Initialize components safely
         try:
-            self.researcher = WebResearcher()
+            self.researcher = _create_web_researcher()
         except Exception as e:
             logger.warning(f"WebResearcher init failed: {e}")
             self.researcher = None
 
         try:
-            self.memory = MemoryManager()
+            self.memory = _create_memory_manager()
         except Exception as e:
             logger.warning(f"MemoryManager init failed: {e}")
             self.memory = None

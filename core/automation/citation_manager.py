@@ -36,6 +36,8 @@ from collections import defaultdict
 from enum import Enum
 import sqlite3
 import pickle
+import signal
+import weakref
 
 import numpy as np
 
@@ -737,6 +739,12 @@ class CitationManager:
         self.backup_interval_hours = backup_interval_hours
         self.last_backup = datetime.now()
         
+        # Background tasks management
+        self._background_tasks: List[asyncio.Task] = []
+        self._backup_task: Optional[asyncio.Task] = None
+        self._shutdown_event = asyncio.Event()
+        self._is_shutting_down = False
+        
         # GGUF Model configuration
         self.model_path = model_path
         self.n_ctx = n_ctx
@@ -762,7 +770,7 @@ class CitationManager:
         self.search_history: List[Dict[str, Any]] = []
         self.import_history: List[Dict[str, Any]] = []
         
-        # Initialize components
+        # Initialize components (synchronous only)
         if self.use_vector:
             self._init_gguf_model()
             self._init_faiss()
@@ -778,9 +786,139 @@ class CitationManager:
         # Load existing citations
         self._load_from_disk()
         
-        # Start backup task if auto_backup enabled
-        if auto_backup:
-            asyncio.create_task(self._auto_backup_loop())
+        # Note: Background tasks will be started by calling start_background_tasks()
+        # This is now done explicitly to avoid event loop issues
+    
+    # ==================== ASYNC LIFECYCLE MANAGEMENT ====================
+    
+    async def start_background_tasks(self):
+        """
+        Start all background tasks safely.
+        Must be called after the event loop is running.
+        """
+        # Check if we have a running event loop
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            logger.warning("No running event loop, background tasks not started")
+            return
+        
+        # Prevent duplicate task creation
+        if self._backup_task is not None and not self._backup_task.done():
+            logger.warning("Background tasks already running")
+            return
+        
+        logger.info("Starting CitationManager background tasks...")
+        
+        # Start auto backup if enabled
+        if self.auto_backup:
+            self._backup_task = asyncio.create_task(self._auto_backup_loop())
+            self._background_tasks.append(self._backup_task)
+            logger.info(f"✅ Auto backup task started (interval: {self.backup_interval_hours} hours)")
+        
+        # Add a cleanup task to monitor for task failures
+        monitor_task = asyncio.create_task(self._monitor_background_tasks())
+        self._background_tasks.append(monitor_task)
+        
+        logger.info(f"CitationManager background tasks started ({len(self._background_tasks)} tasks)")
+    
+    async def _monitor_background_tasks(self):
+        """Monitor background tasks and restart if they fail"""
+        while not self._shutdown_event.is_set():
+            await asyncio.sleep(30)  # Check every 30 seconds
+            
+            # Check backup task
+            if self.auto_backup and self._backup_task:
+                if self._backup_task.done():
+                    exception = self._backup_task.exception()
+                    if exception:
+                        logger.error(f"Backup task failed: {exception}. Attempting restart...")
+                        # Restart the task
+                        self._backup_task = asyncio.create_task(self._auto_backup_loop())
+                        # Replace in list
+                        for i, task in enumerate(self._background_tasks):
+                            if task.get_name() == "backup_task":
+                                self._background_tasks[i] = self._backup_task
+                                break
+    
+    async def shutdown(self):
+        """
+        Gracefully shutdown all background tasks.
+        This should be called before the application exits.
+        """
+        if self._is_shutting_down:
+            logger.debug("Shutdown already in progress")
+            return
+        
+        self._is_shutting_down = True
+        logger.info("Shutting down CitationManager background tasks...")
+        
+        # Signal all tasks to stop
+        self._shutdown_event.set()
+        
+        # Cancel all background tasks
+        for task in self._background_tasks:
+            if not task.done():
+                task.cancel()
+                logger.debug(f"Cancelled task: {task.get_name() if hasattr(task, 'get_name') else 'unknown'}")
+        
+        # Wait for tasks to complete with timeout
+        if self._background_tasks:
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*[t for t in self._background_tasks if not t.done()], return_exceptions=True),
+                    timeout=5.0
+                )
+                logger.info("All background tasks cancelled successfully")
+            except asyncio.TimeoutError:
+                logger.warning("Timeout waiting for background tasks to cancel")
+            except Exception as e:
+                logger.error(f"Error during task cancellation: {e}")
+        
+        # Clear task list
+        self._background_tasks.clear()
+        self._backup_task = None
+        self._is_shutting_down = False
+        
+        # Final save
+        self._save_to_disk()
+        logger.info("CitationManager shutdown complete")
+    
+    async def _auto_backup_loop(self):
+        """Automatic backup loop with proper error handling"""
+        task_name = "backup_task"
+        if hasattr(asyncio.current_task(), 'set_name'):
+            asyncio.current_task().set_name(task_name)
+        
+        logger.info("Auto backup loop started")
+        
+        while not self._shutdown_event.is_set():
+            try:
+                # Wait for backup interval or shutdown signal
+                await asyncio.sleep(self.backup_interval_hours * 3600)
+                
+                # Check if we should still run
+                if self._shutdown_event.is_set():
+                    break
+                
+                # Check if backup is needed
+                if (datetime.now() - self.last_backup).total_seconds() >= self.backup_interval_hours * 3600:
+                    try:
+                        backup_path = f"backups/citations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                        self.export(backup_path, format="json")
+                        self.last_backup = datetime.now()
+                        logger.info(f"Auto backup created: {backup_path}")
+                    except Exception as e:
+                        logger.error(f"Auto backup failed: {e}")
+                
+            except asyncio.CancelledError:
+                logger.info("Auto backup loop cancelled")
+                break
+            except Exception as e:
+                logger.error(f"Unexpected error in auto backup loop: {e}")
+                await asyncio.sleep(60)  # Wait before retrying
+    
+    # ==================== INITIALIZATION (SYNC ONLY) ====================
     
     def _init_gguf_model(self):
         """Initialize GGUF model for embeddings"""
@@ -1019,17 +1157,6 @@ class CitationManager:
             
         except Exception as e:
             logger.error(f"Failed to save citations: {e}")
-    
-    async def _auto_backup_loop(self):
-        """Automatic backup loop"""
-        while self.auto_backup:
-            await asyncio.sleep(self.backup_interval_hours * 3600)
-            
-            if (datetime.now() - self.last_backup).total_seconds() >= self.backup_interval_hours * 3600:
-                backup_path = f"backups/citations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-                self.export(backup_path, format="json")
-                self.last_backup = datetime.now()
-                logger.info(f"Auto backup created: {backup_path}")
     
     # ==================== CRUD OPERATIONS ====================
     
@@ -1700,6 +1827,14 @@ class CitationManager:
             tag_counts[tag.lower()] += 1
         top_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:10]
         
+        # Background task status
+        background_status = {
+            "auto_backup_enabled": self.auto_backup,
+            "backup_task_running": self._backup_task is not None and not self._backup_task.done(),
+            "total_background_tasks": len(self._background_tasks),
+            "is_shutting_down": self._is_shutting_down
+        }
+        
         return {
             "total": total,
             "avg_reliability": round(sum(c.reliability_score for c in self.citations.values()) / total, 3),
@@ -1717,6 +1852,7 @@ class CitationManager:
             "vector_size": self._faiss_index.ntotal if self._faiss_index else 0,
             "tfidf_enabled": self.use_tfidf,
             "citation_graph_enabled": NETWORKX_AVAILABLE,
+            "background_tasks": background_status,
         }
     
     def get_top_citations(self, limit: int = 10, sort_by: str = "reliability") -> List[Dict]:
@@ -1940,6 +2076,21 @@ class CitationManagerWrapper:
             "recommend_citations", "generate_bibliography", "delete_citation", "update_citation",
             "integrate_with_memory", "create_backup", "rebuild_indexes"
         ]
+        self._initialized = False
+    
+    async def start(self):
+        """Start the citation manager and background tasks"""
+        if not self._initialized:
+            await self.citation_manager.start_background_tasks()
+            self._initialized = True
+            logger.info("CitationManager started with background tasks")
+    
+    async def stop(self):
+        """Stop the citation manager and cleanup"""
+        if self._initialized:
+            await self.citation_manager.shutdown()
+            self._initialized = False
+            logger.info("CitationManager stopped")
     
     async def process_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Process a citation management request"""
@@ -2083,6 +2234,7 @@ class CitationManagerWrapper:
             "capabilities": self.capabilities,
             "stats": self.citation_manager.get_statistics(),
             "embedding_model": "GGUF",
+            "initialized": self._initialized,
         }
 
 
@@ -2099,121 +2251,130 @@ async def test_citation_manager():
         model_path="./models/EDIATH-q4_k_m.gguf",
         use_vector=True,
         use_tfidf=True,
-        auto_backup=False
+        auto_backup=False  # Disable auto backup for test
     )
     
-    # Add citations
-    logger.info("1. Adding Citations...")
+    # Start background tasks
+    await manager.start_background_tasks()
     
-    citation1 = manager.add_citation(
-        title="Artificial Intelligence in Modern Computing: A Comprehensive Review",
-        authors=["John Smith", "Jane Doe", "Bob Johnson"],
-        url="https://example.com/ai-paper",
-        source="Journal of AI Research",
-        content="This paper discusses the latest advances in artificial intelligence and machine learning, with a focus on transformer architectures and large language models. The authors present a comprehensive review of recent developments in the field.",
-        publication_date="2024-01-15",
-        publisher="AI Research Press",
-        doi="10.1234/ai.2024.001",
-        keywords=["AI", "Machine Learning", "Transformers", "LLM"],
-        reference_type=ReferenceType.JOURNAL_ARTICLE,
-        volume="15",
-        issue="2",
-        pages="123-145",
-        tags=["artificial-intelligence", "review"],
-        rating=4.5,
-        important=True
-    )
-    
-    citation2 = manager.add_citation(
-        title="Deep Learning for Natural Language Processing",
-        authors=["Alice Williams"],
-        url="https://example.com/nlp-paper",
-        source="NLP Conference 2023",
-        content="Exploring deep learning approaches for NLP tasks including sentiment analysis, machine translation, and text generation.",
-        publication_date="2023-08-20",
-        publisher="ACL",
-        keywords=["NLP", "Deep Learning", "Transformers"],
-        reference_type=ReferenceType.CONFERENCE_PAPER,
-        conference="ACL 2023",
-        tags=["nlp", "deep-learning"]
-    )
-    
-    citation3 = manager.add_citation(
-        title="The Future of Quantum Computing",
-        authors=["David Chen", "Maria Garcia"],
-        url="https://example.com/quantum-paper",
-        source="Quantum Computing Weekly",
-        content="Quantum computing promises to revolutionize computing by leveraging quantum mechanical phenomena.",
-        publication_date="2024-02-10",
-        publisher="Quantum Press",
-        keywords=["Quantum Computing", "Qubits", "Quantum Supremacy"],
-        reference_type=ReferenceType.JOURNAL_ARTICLE,
-        tags=["quantum", "future-tech"],
-        rating=4.0
-    )
-    
-    logger.info(f"   Added citations: {citation1}, {citation2}, {citation3}")
-    
-    # Search
-    logger.info("\n2. Searching Citations...")
-    
-    results = await manager.search("artificial intelligence advances", top_k=3)
-    for r in results:
-        logger.info(f"   Score {r.get('similarity', 0):.3f}: {r.get('title')[:60]}...")
-    
-    # Filtered search
-    logger.info("\n3. Filtered Search...")
-    filters = SearchFilter(
-        min_reliability=0.7,
-        important_only=True
-    )
-    results = await manager.search("AI", top_k=5, filters=filters)
-    logger.info(f"   Found {len(results)} important citations with high reliability")
-    
-    # Format citations
-    logger.info("\n4. Formatting Citations...")
-    apa = manager.format_citation(citation1, style="apa")
-    logger.info(f"   APA: {apa[:100]}...")
-    
-    mla = manager.format_citation(citation1, style="mla")
-    logger.info(f"   MLA: {mla[:100]}...")
-    
-    # Bibliography
-    logger.info("\n5. Generating Bibliography...")
-    bibliography = manager.format_multiple([citation1, citation2, citation3], style="apa")
-    logger.info(f"   Bibliography length: {len(bibliography)} characters")
-    
-    # Statistics
-    logger.info("\n6. Statistics...")
-    stats = manager.get_statistics()
-    logger.info(f"   Total citations: {stats['total']}")
-    logger.info(f"   Average reliability: {stats['avg_reliability']}")
-    logger.info(f"   Important citations: {stats['important_count']}")
-    logger.info(f"   Top keywords: {stats['top_keywords'][:5]}")
-    
-    # Export
-    logger.info("\n7. Exporting Data...")
-    manager.export("citations_export.json", format="json")
-    manager.export("citations_export.bib", format="bibtex")
-    logger.info("   Exported to multiple formats")
-    
-    # Recommendations
-    logger.info("\n8. Getting Recommendations...")
-    recommendations = manager.recommend_citations(citation1, top_k=3)
-    for rec in recommendations:
-        logger.info(f"   Recommended: {rec['title'][:60]}...")
-    
-    # Duplicates
-    logger.info("\n9. Checking for Duplicates...")
-    duplicates = manager.find_duplicates()
-    logger.info(f"   Duplicate groups found: {len(duplicates)}")
-    
-    # Summary
-    logger.info("\n10. Generating Summary...")
-    summary = manager.summarize_citation(citation1)
-    logger.info(f"    Summary: {summary[:100]}...")
-    
-    logger.info("\n=== Test Complete ===")
+    try:
+        # Add citations
+        logger.info("1. Adding Citations...")
+        
+        citation1 = manager.add_citation(
+            title="Artificial Intelligence in Modern Computing: A Comprehensive Review",
+            authors=["John Smith", "Jane Doe", "Bob Johnson"],
+            url="https://example.com/ai-paper",
+            source="Journal of AI Research",
+            content="This paper discusses the latest advances in artificial intelligence and machine learning, with a focus on transformer architectures and large language models. The authors present a comprehensive review of recent developments in the field.",
+            publication_date="2024-01-15",
+            publisher="AI Research Press",
+            doi="10.1234/ai.2024.001",
+            keywords=["AI", "Machine Learning", "Transformers", "LLM"],
+            reference_type=ReferenceType.JOURNAL_ARTICLE,
+            volume="15",
+            issue="2",
+            pages="123-145",
+            tags=["artificial-intelligence", "review"],
+            rating=4.5,
+            important=True
+        )
+        
+        citation2 = manager.add_citation(
+            title="Deep Learning for Natural Language Processing",
+            authors=["Alice Williams"],
+            url="https://example.com/nlp-paper",
+            source="NLP Conference 2023",
+            content="Exploring deep learning approaches for NLP tasks including sentiment analysis, machine translation, and text generation.",
+            publication_date="2023-08-20",
+            publisher="ACL",
+            keywords=["NLP", "Deep Learning", "Transformers"],
+            reference_type=ReferenceType.CONFERENCE_PAPER,
+            conference="ACL 2023",
+            tags=["nlp", "deep-learning"]
+        )
+        
+        citation3 = manager.add_citation(
+            title="The Future of Quantum Computing",
+            authors=["David Chen", "Maria Garcia"],
+            url="https://example.com/quantum-paper",
+            source="Quantum Computing Weekly",
+            content="Quantum computing promises to revolutionize computing by leveraging quantum mechanical phenomena.",
+            publication_date="2024-02-10",
+            publisher="Quantum Press",
+            keywords=["Quantum Computing", "Qubits", "Quantum Supremacy"],
+            reference_type=ReferenceType.JOURNAL_ARTICLE,
+            tags=["quantum", "future-tech"],
+            rating=4.0
+        )
+        
+        logger.info(f"   Added citations: {citation1}, {citation2}, {citation3}")
+        
+        # Search
+        logger.info("\n2. Searching Citations...")
+        
+        results = await manager.search("artificial intelligence advances", top_k=3)
+        for r in results:
+            logger.info(f"   Score {r.get('similarity', 0):.3f}: {r.get('title')[:60]}...")
+        
+        # Filtered search
+        logger.info("\n3. Filtered Search...")
+        filters = SearchFilter(
+            min_reliability=0.7,
+            important_only=True
+        )
+        results = await manager.search("AI", top_k=5, filters=filters)
+        logger.info(f"   Found {len(results)} important citations with high reliability")
+        
+        # Format citations
+        logger.info("\n4. Formatting Citations...")
+        apa = manager.format_citation(citation1, style="apa")
+        logger.info(f"   APA: {apa[:100]}...")
+        
+        mla = manager.format_citation(citation1, style="mla")
+        logger.info(f"   MLA: {mla[:100]}...")
+        
+        # Bibliography
+        logger.info("\n5. Generating Bibliography...")
+        bibliography = manager.format_multiple([citation1, citation2, citation3], style="apa")
+        logger.info(f"   Bibliography length: {len(bibliography)} characters")
+        
+        # Statistics
+        logger.info("\n6. Statistics...")
+        stats = manager.get_statistics()
+        logger.info(f"   Total citations: {stats['total']}")
+        logger.info(f"   Average reliability: {stats['avg_reliability']}")
+        logger.info(f"   Important citations: {stats['important_count']}")
+        logger.info(f"   Top keywords: {stats['top_keywords'][:5]}")
+        logger.info(f"   Background tasks: {stats['background_tasks']}")
+        
+        # Export
+        logger.info("\n7. Exporting Data...")
+        manager.export("citations_export.json", format="json")
+        manager.export("citations_export.bib", format="bibtex")
+        logger.info("   Exported to multiple formats")
+        
+        # Recommendations
+        logger.info("\n8. Getting Recommendations...")
+        recommendations = manager.recommend_citations(citation1, top_k=3)
+        for rec in recommendations:
+            logger.info(f"   Recommended: {rec['title'][:60]}...")
+        
+        # Duplicates
+        logger.info("\n9. Checking for Duplicates...")
+        duplicates = manager.find_duplicates()
+        logger.info(f"   Duplicate groups found: {len(duplicates)}")
+        
+        # Summary
+        logger.info("\n10. Generating Summary...")
+        summary = manager.summarize_citation(citation1)
+        logger.info(f"    Summary: {summary[:100]}...")
+        
+        logger.info("\n=== Test Complete ===")
+        
+    finally:
+        # Clean shutdown
+        await manager.shutdown()
     
     return manager
 

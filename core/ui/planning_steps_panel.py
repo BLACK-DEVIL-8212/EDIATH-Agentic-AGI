@@ -106,6 +106,9 @@ class PlanningStepsPanel(BoxLayout):
         Example: react to system events
         """
         self.controller = controller
+        backend = getattr(controller, "backend", controller)
+        if not hasattr(backend, "set_status_callback"):
+            return
 
         def on_status(text):
             text = text.lower()
@@ -119,4 +122,4 @@ class PlanningStepsPanel(BoxLayout):
             elif "connection" in text:
                 self.complete_step(2)
 
-        controller.backend.set_status_callback(on_status)
+        backend.set_status_callback(on_status)

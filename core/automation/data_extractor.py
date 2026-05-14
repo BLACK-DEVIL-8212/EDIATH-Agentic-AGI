@@ -32,6 +32,7 @@ from collections import defaultdict, OrderedDict
 from pathlib import Path
 import base64
 import uuid
+import importlib.util
 
 import aiofiles
 from typing import Set
@@ -78,12 +79,14 @@ except ImportError:
 
 from ..utils.logger import logger
 
-# LLM engine imports
-try:
+LLM_AVAILABLE = importlib.util.find_spec("core.brain.llm_engine") is not None
+
+
+def _load_llm_engine():
+    """Import the heavy LLM engine only when AI extraction is enabled."""
     from ..brain.llm_engine import LLMEngine
-    LLM_AVAILABLE = True
-except ImportError:
-    LLM_AVAILABLE = False
+
+    return LLMEngine
 
 
 class ExtractionType(Enum):
@@ -204,6 +207,7 @@ class DataExtractor:
         self.llm = None
         if self.use_llm:
             try:
+                LLMEngine = _load_llm_engine()
                 self.llm = LLMEngine()
                 logger.info("LLM engine initialized for extraction")
             except Exception as e:
