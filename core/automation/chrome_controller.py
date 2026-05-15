@@ -219,7 +219,10 @@ class ChromeController:
         
         # If headless parameter is provided (old API), apply it to config
         if headless is not None:
-            logger.warning("DEPRECATED: headless parameter in ChromeController.__init__ is deprecated. Use BrowserConfig.headless instead.")
+            # Use warning_once to avoid spam
+            if not hasattr(ChromeController, '_deprecation_warned'):
+                ChromeController._deprecation_warned = True
+                logger.warning("DEPRECATED: headless parameter in ChromeController.__init__ is deprecated. Use BrowserConfig.headless instead.")
             config.headless = headless
         
         self.config = config
