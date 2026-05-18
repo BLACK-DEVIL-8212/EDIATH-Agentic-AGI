@@ -204,12 +204,10 @@ class DecisionEngine:
         self.user_activity_log: List[Dict[str, Any]] = []
 
         # ── Component initialisation ───────────────────────────────────────
+        # The main system injects the shared LLM later. Constructing it here
+        # blocks UI startup and can load the model multiple times.
         self.llm: Optional[Any] = None
-        try:
-            if LLMEngine:
-                self.llm = LLMEngine()
-        except Exception as e:
-            self.logger.warning(f"LLM init failed: {e}")
+        self.llm_engine = None
 
         self.memory: Optional[Any] = None
         try:
@@ -225,15 +223,15 @@ class DecisionEngine:
         except Exception as e:
             self.logger.warning(f"Vision init failed: {e}")
 
-        try:
-            if CuriosityEngine:
-                self.curiosity_engine = CuriosityEngine()
-                self.logger.info("CuriosityEngine integrated")
-        except Exception as e:
-            self.logger.warning(f"CuriosityEngine init failed: {e}")
+        # Curiosity can be injected by the main system. Avoid constructing it
+        # here because it may initialize web research/citation dependencies.
+        self.curiosity_engine = None
 
-        # Alias for compatibility with callers that use llm_engine
-        self.llm_engine = self.llm
+        # Queue / worker (created in start())
+        self._decision_queue: Optional[asyncio.Queue] = None
+        self._worker_task: Optional[asyncio.Task] = None
+        self._curiosity_task: Optional[asyncio.Task] = None  # FIX #22
+        self._running: bool = False
 
     def set_llm_engine(self, llm_engine: Any) -> None:
         """Inject the shared LLM engine instance (single source of truth)."""
@@ -241,13 +239,6 @@ class DecisionEngine:
             return
         self.llm = llm_engine
         self.llm_engine = llm_engine
-
-
-        # Queue / worker (created in start())
-        self._decision_queue: Optional[asyncio.Queue] = None
-        self._worker_task: Optional[asyncio.Task] = None
-        self._curiosity_task: Optional[asyncio.Task] = None  # FIX #22
-        self._running: bool = False
 
     # ── Repr (Enhancement A) ──────────────────────────────────────────────
 

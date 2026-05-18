@@ -35,7 +35,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ..utils.logger import logger
-from .chrome_controller import ChromeController
+from .chrome_controller import create_chrome_controller
 
 # Optional dependencies
 try:
@@ -388,14 +388,7 @@ class HumanBrowser:
         """
         # Store parameters for later use
         self.headless = headless
-        self.browser = ChromeController()  # ChromeController doesn't accept headless param
-        # Set headless mode after initialization if needed
-        if headless:
-            # Try to set headless mode through config if available
-            if hasattr(self.browser, 'set_headless'):
-                self.browser.set_headless(headless)
-            elif hasattr(self.browser, 'headless'):
-                self.browser.headless = headless
+        self.browser = create_chrome_controller(headless=headless)
         
         self.behavior = HumanBehavior()
         self.profile = profile
@@ -429,13 +422,8 @@ class HumanBrowser:
         
         # AI decision engine
         self._llm = None
-        if use_ai_for_links:
-            try:
-                from ..brain.llm_engine import LLMEngine
-                self._llm = LLMEngine()
-            except Exception as e:
-                logger.warning(f"LLM not available for AI link selection: {e}")
-                self.use_ai_for_links = False
+        # The shared LLM can be injected later. Do not load it during browser
+        # construction because that blocks UI startup.
         
         # Download tracking
         self.downloads: List[Dict[str, Any]] = []
@@ -447,6 +435,22 @@ class HumanBrowser:
         self.learned_patterns: Dict[str, Any] = {}
         
         logger.info(f"🧑‍💻 Human browser initialized with profile: {profile.value}")
+
+    def _ensure_llm(self):
+        if self._llm is not None:
+            return self._llm
+
+        if not self.use_ai_for_links:
+            return None
+
+        try:
+            from ..brain.llm_engine import LLMEngine
+
+            self._llm = LLMEngine()
+        except Exception as e:
+            logger.warning(f"LLM not available for AI link selection: {e}")
+            self._llm = None
+        return self._llm
     
     # ==================== SESSION PERSISTENCE ====================
     
@@ -1051,7 +1055,7 @@ class HumanBrowser:
     
     async def _select_link_ai(self, html: str, goal: str) -> Optional[str]:
         """Use LLM to select most relevant link"""
-        if not self._llm:
+        if not self._ensure_llm():
             return None
         
         links = await self._extract_links(html)

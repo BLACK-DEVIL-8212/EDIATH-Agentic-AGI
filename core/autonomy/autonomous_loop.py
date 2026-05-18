@@ -31,11 +31,6 @@ def _create_memory_manager():
     return MemoryManager()
 
 
-def _create_llm_engine():
-    from ..brain.llm_engine import LLMEngine
-    return LLMEngine()
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # Enums
 # ══════════════════════════════════════════════════════════════════════════════
@@ -294,7 +289,11 @@ class AutonomousLoop:
         self.personality    = personality or "Helpful and friendly AI assistant"
 
         self.memory            = _create_memory_manager()
-        self.llm               = getattr(system, "llm", None) or _create_llm_engine()
+        self.llm               = (
+            getattr(system, "llm", None)
+            or getattr(system, "llm_engine", None)
+            or getattr(system, "shared_llm", None)
+        )
         self.tool_registry     = ToolRegistry()
         self.sentiment_analyzer= SentimentAnalyzer() if enable_emotion else None
         self.context_manager   = ContextManager(max_turns=max_history_turns) if enable_context else None
@@ -465,6 +464,9 @@ class AutonomousLoop:
         await self.rate_limiter.acquire()
 
         try:
+            if not self.llm:
+                return self._fallback_response(user_input)
+
             if self.streaming:
                 response = await self._stream_response(prompt)
             else:
@@ -521,6 +523,8 @@ class AutonomousLoop:
 
     async def _stream_response(self, prompt: str) -> str:
         try:
+            if not self.llm:
+                raise RuntimeError("LLM is not ready")
             full_response = await self.llm.generate(prompt)
             text = full_response if isinstance(full_response, str) else str(full_response)
             for word in text.split():
@@ -1038,12 +1042,7 @@ class EDIATHUnifiedBrain:
         self.system = self
 
         self.memory = _create_memory_manager()
-        # FIX: safe LLM creation — no dependency on data_extractor.LLM_AVAILABLE
-        try:
-            self.llm = _create_llm_engine()
-        except Exception as exc:
-            logger.warning("LLM engine unavailable: %s", exc)
-            self.llm = None
+        self.llm = None
 
         self.loop = AutonomousLoop(
             system            = self,

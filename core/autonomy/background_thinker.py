@@ -54,12 +54,6 @@ except ImportError:
 from ..utils.logger import logger
 
 
-def _create_llm_engine():
-    from ..brain.llm_engine import LLMEngine
-
-    return LLMEngine()
-
-
 def _create_memory_manager():
     from ..memory.memory_manager import MemoryManager
 
@@ -442,7 +436,11 @@ class BackgroundThinker:
         self.system = system
         
         # Core components
-        self.llm = getattr(system, "llm_engine", None) or _create_llm_engine()
+        self.llm = (
+            getattr(system, "llm_engine", None)
+            or getattr(system, "shared_llm", None)
+            or getattr(system, "llm", None)
+        )
         self.memory = getattr(system, "memory", None) or _create_memory_manager()
         
         # Queues and storage
@@ -890,6 +888,11 @@ Response:"""
                     heapq.heappush(self.queue, (priority_val, idx, task))
                     continue
                 
+                if not self.llm:
+                    heapq.heappush(self.queue, (priority_val, idx, task))
+                    logger.debug("Background thinking deferred until LLM is ready")
+                    break
+
                 # Execute task
                 start_time = time.time()
                 self.active_tasks[task.id] = task

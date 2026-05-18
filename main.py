@@ -215,8 +215,13 @@ def inject_shared_llm_into_component(component: Any, shared_llm: LLMEngine) -> N
             logger.debug(f"set_llm failed for {type(component).__name__}: {e}")
     
     # Recursively inject into child components
-    for attr_name in ['decision_engine', 'curiosity', 'agent', 'orchestrator', 
-                      'memory_api', 'vision_engine_instance']:
+    for attr_name in [
+        'decision_engine', 'curiosity', 'agent', 'orchestrator',
+        'memory_api', 'vision_engine_instance', 'goal_manager',
+        'self_improvement', 'autonomous_core', 'autonomous_loop',
+        'background_thinker', 'software_builder', 'data_extractor',
+        'web_researcher', 'human_browser',
+    ]:
         if hasattr(component, attr_name):
             child = getattr(component, attr_name)
             if child is not None and child is not component:

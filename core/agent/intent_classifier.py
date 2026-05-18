@@ -177,15 +177,9 @@ class IntentClassifier:
             # 🔥 stats
             self.classification_count = 0
 
-            # 🔥 Reuse the shared engine when injected.
-            # If not injected, do NOT create a new engine/model here.
-            # This keeps startup/load costs low and avoids redundant GGUF loads.
+            # Reuse the shared engine when injected. Do not create a new
+            # engine/model here; startup must not duplicate the GGUF load.
             self.llm = llm_engine
-            # 🔥 LLM (safe init)
-            try:
-                self.llm = LLMEngine()
-            except Exception:
-                self.llm = None
 
             # 🔥 rate limiting (prevents spam / overload)
             self._last_call = 0.0

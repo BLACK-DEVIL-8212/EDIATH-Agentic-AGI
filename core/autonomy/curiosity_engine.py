@@ -107,12 +107,8 @@ class CuriosityEngine:
         self.exploration_count = 0
         self.suggestion_count = 0
 
-        # Initialize components safely
-        try:
-            self.researcher = _create_web_researcher()
-        except Exception as e:
-            logger.warning(f"WebResearcher init failed: {e}")
-            self.researcher = None
+        # Created lazily when exploration actually needs web research.
+        self.researcher = None
 
         try:
             self.memory = _create_memory_manager()
@@ -143,6 +139,18 @@ class CuriosityEngine:
         self._last_heartbeat = time.time()
 
         logger.info(f"CuriosityEngine initialized with level {curiosity_level}")
+
+    def _ensure_researcher(self):
+        if self.researcher is not None:
+            return self.researcher
+
+        try:
+            self.researcher = _create_web_researcher()
+        except Exception as e:
+            logger.warning(f"WebResearcher init failed: {e}")
+            self.researcher = None
+
+        return self.researcher
 
     # ------------------------
     # ADD TOPIC
@@ -1104,9 +1112,10 @@ class CuriosityEngine:
             # 🔥 RESEARCH WITH TIMEOUT
             # ------------------------
             try:
-                if getattr(self, "researcher", None):
+                researcher = self._ensure_researcher()
+                if researcher:
                     research = await asyncio.wait_for(
-                        self.researcher.research(topic), timeout=10
+                        researcher.research(topic), timeout=10
                     )
                 else:
                     research = {"error": "researcher_unavailable", "topic": topic}

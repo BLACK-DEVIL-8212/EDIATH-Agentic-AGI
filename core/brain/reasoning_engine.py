@@ -8,7 +8,7 @@ import re
 import asyncio
 from typing import Any, Dict, List, Optional, Tuple
 from enum import Enum
-from datetime import datetime
+from datetime import datetime, datetimek 
 
 from ..utils.logger import logger
 
@@ -98,16 +98,9 @@ class ReasoningEngine:
         # Rate limiting
         self._last_reasoning_time = 0
 
-        # Initialize AI + Memory safely
-        try:
-            if LLMEngine:
-                self.llm = LLMEngine()
-            else:
-                self.llm = None
-                logger.warning("LLMEngine not available")
-        except Exception as e:
-            logger.warning(f"LLM init failed: {e}")
-            self.llm = None
+        # The main system injects the shared LLM later. Do not load the model
+        # in this constructor.
+        self.llm = None
 
         try:
             if MemoryManager:
@@ -118,6 +111,13 @@ class ReasoningEngine:
         except Exception as e:
             logger.warning(f"Memory init failed: {e}")
             self.memory = None
+
+    def set_llm_engine(self, llm_engine: Any) -> None:
+        if llm_engine is not None:
+            self.llm = llm_engine
+
+    def set_llm(self, llm_engine: Any) -> None:
+        self.set_llm_engine(llm_engine)
 
     def create_chain(
         self,

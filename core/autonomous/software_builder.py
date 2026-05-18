@@ -308,8 +308,9 @@ class SoftwareBuilder:
         self.code_coverage_target = code_coverage_target
         self.max_line_length = max_line_length
         
-        # LLM engines
-        self.llm = LLMEngine() if LLM_AVAILABLE else None
+        # The shared LLM is injected by the main system after startup. Loading
+        # it here blocks UI construction and duplicates the model in memory.
+        self.llm = None
         
         # Storage
         self.projects: Dict[str, Dict[str, Any]] = {}

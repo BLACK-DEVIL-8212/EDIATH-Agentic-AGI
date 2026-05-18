@@ -202,17 +202,10 @@ class DataExtractor:
         self.max_workers = max_workers
         self.default_language = default_language
         
-        # LLM setup
+        # LLM setup. Keep model construction lazy so automation/browser startup
+        # does not block on loading the multi-GB local model.
         self.use_llm = use_llm and LLM_AVAILABLE
         self.llm = None
-        if self.use_llm:
-            try:
-                LLMEngine = _load_llm_engine()
-                self.llm = LLMEngine()
-                logger.info("LLM engine initialized for extraction")
-            except Exception as e:
-                logger.warning(f"Failed to initialize LLM: {e}")
-                self.use_llm = False
         
         # OCR setup
         self.enable_ocr = enable_ocr and OCR_AVAILABLE
@@ -244,6 +237,25 @@ class DataExtractor:
         self._register_advanced_patterns()
         
         logger.info(f"DataExtractor initialized with {len(self.patterns)} patterns")
+
+    def _ensure_llm(self) -> bool:
+        """Create the LLM only when an AI extraction actually needs it."""
+        if not self.use_llm:
+            return False
+
+        if self.llm is not None:
+            return True
+
+        try:
+            LLMEngine = _load_llm_engine()
+            self.llm = LLMEngine()
+            logger.info("LLM engine initialized for extraction")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to initialize LLM: {e}")
+            self.use_llm = False
+            self.llm = None
+            return False
     
     # ==================== CACHE MANAGEMENT ====================
     
@@ -747,7 +759,7 @@ class DataExtractor:
         """
         Extract structured data using LLM with optional schema validation
         """
-        if not self.use_llm or not self.llm:
+        if not self._ensure_llm():
             logger.warning("LLM not available for AI extraction")
             return []
         

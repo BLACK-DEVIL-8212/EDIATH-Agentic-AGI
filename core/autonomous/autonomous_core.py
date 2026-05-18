@@ -46,7 +46,6 @@ except ImportError:
     SKLEARN_AVAILABLE = False
 
 from ..utils.logger import logger
-from ..brain.llm_engine import LLMEngine
 from ..agent.action_router import ActionRouter
 from ..agent.self_reflection import SelfReflection
 from ..memory import MemoryManager
@@ -399,8 +398,9 @@ class AutonomousCoreEngine:
         self.decision_timeout = decision_timeout
         self.max_concurrent_decisions = max_concurrent_decisions
         
-        # Core components
-        self.llm = LLMEngine()
+        # Core components. The shared LLM is injected by the main system after
+        # it is initialized; do not load the multi-GB model in this constructor.
+        self.llm = None
         self.router = ActionRouter()
         self.memory = MemoryManager()
         self.reflection = SelfReflection()
@@ -515,7 +515,9 @@ class AutonomousCoreEngine:
             self.pending_chunks = asyncio.Queue(maxsize=self.queue_size)
             
             # Initialize subcomponents
-            components = [self.llm, self.router, self.memory, self.reflection]
+            components = [self.router, self.memory, self.reflection]
+            if self.llm:
+                components.insert(0, self.llm)
             for comp in components:
                 if hasattr(comp, "initialize"):
                     try:
@@ -839,6 +841,10 @@ Consider:
 """
             
             # Call LLM with circuit breaker
+            if not self.llm:
+                logger.debug("LLM not ready, using fallback autonomous decision")
+                return self._fallback_decision(context)
+
             cb = self.circuit_breakers.get("llm")
             if cb and not cb.can_execute():
                 logger.warning("LLM circuit breaker open, using fallback")

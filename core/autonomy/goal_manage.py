@@ -41,12 +41,6 @@ from ..utils.logger import logger
 from ..agent.action_router import ActionRouter
 
 
-def _create_llm_engine():
-    from ..brain.llm_engine import LLMEngine
-
-    return LLMEngine()
-
-
 def _create_memory_manager():
     from ..memory.memory_manager import MemoryManager
 
@@ -446,7 +440,7 @@ class GoalManager:
         self.completion_times: List[float] = []
         
         # Components
-        self.llm = _create_llm_engine()
+        self.llm = None
         self.router = ActionRouter()
         self.memory = _create_memory_manager()
         
@@ -811,6 +805,16 @@ Available action names: research, plan, execute, validate, document, review, rep
 Keep steps simple and actionable (3-6 steps).
 """
             
+            if not self.llm:
+                goal.steps = [
+                    {"action": "research", "params": {"topic": goal.title}, "description": "Research the goal"},
+                    {"action": "plan", "params": {}, "description": "Create detailed plan"},
+                    {"action": "execute", "params": {}, "description": "Execute plan"},
+                    {"action": "review", "params": {}, "description": "Review results"}
+                ]
+                goal.status = GoalStatus.ACTIVE
+                return True
+
             response = await self.llm.generate(prompt)
             
             # Parse response

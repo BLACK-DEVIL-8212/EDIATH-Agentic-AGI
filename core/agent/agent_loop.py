@@ -101,7 +101,7 @@ class AgentLoop:
             # CORE COMPONENTS
             # ------------------------
             self.context = ContextManager()
-            self.llm = LLMEngine()
+            self.llm = self.config.get("llm") or self.config.get("llm_engine")
             self.decision_engine = DecisionEngine()
             self.memory = MemoryManager()
             self.system = SystemController()

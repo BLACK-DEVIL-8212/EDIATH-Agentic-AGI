@@ -32,7 +32,7 @@ from urllib.parse import urlparse, quote_plus
 import random
 
 from ..utils.logger import logger
-from ..automation.chrome_controller import ChromeController
+from ..automation.chrome_controller import create_chrome_controller
 from .data_extractor import DataExtractor
 from .citation_manager import CitationManager
 
@@ -202,9 +202,9 @@ class WebResearcher:
         self.language = language
         
         # Core components
-        self.browser = ChromeController(headless=True)
+        self.browser = create_chrome_controller(headless=True)
         self.extractor = DataExtractor()
-        self.citation_manager = CitationManager() if enable_citations else None
+        self.citation_manager = CitationManager(use_vector=False) if enable_citations else None
         
         # Storage
         self.cache: Dict[str, Dict[str, Any]] = {}

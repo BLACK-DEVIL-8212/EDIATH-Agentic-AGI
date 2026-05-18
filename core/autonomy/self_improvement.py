@@ -42,12 +42,6 @@ except ImportError:
 from ..utils.logger import logger
 
 
-def _create_llm_engine():
-    from ..brain.llm_engine import LLMEngine
-
-    return LLMEngine()
-
-
 def _create_memory_manager():
     from ..memory.memory_manager import MemoryManager
 
@@ -301,7 +295,7 @@ class SelfImprovement:
         self.benchmark_results: Dict[str, List[float]] = defaultdict(list)
         
         # Components
-        self.llm = _create_llm_engine()
+        self.llm = None
         self.memory = _create_memory_manager()
         
         # State
@@ -483,6 +477,9 @@ Focus on high-impact, reasonable-effort improvements.
 """
         
         try:
+            if not self.llm:
+                return self._generate_fallback_suggestions()
+
             response = await self.llm.generate(prompt)
             
             # Parse response
