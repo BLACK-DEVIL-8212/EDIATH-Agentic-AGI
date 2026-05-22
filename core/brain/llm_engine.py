@@ -55,7 +55,7 @@ except ImportError:
 
 # FIXED: Use nvidia-ml-py instead of deprecated pynvml
 try:
-    import nvidia_smi
+    import nvidia_smi # pyright: ignore[reportMissingImports]
     nvidia_smi.nvmlInit()
     _NVML_AVAILABLE = True
 except ImportError:

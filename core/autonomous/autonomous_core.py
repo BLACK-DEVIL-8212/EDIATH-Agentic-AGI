@@ -33,6 +33,8 @@ import heapq
 import hashlib
 import traceback
 
+from core.memory.memory_manager import MemoryManager
+
 try:
     import numpy as np
     NUMPY_AVAILABLE = True

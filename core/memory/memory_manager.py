@@ -2280,8 +2280,13 @@ class MemoryManager:
 
     def initialize(self, *args, **kwargs) -> bool:
         """
-        Initialize MemoryManager safely.
-        Production-grade + async-safe + idempotent.
+        🚀 Production MemoryManager Initialization
+        - Async-safe
+        - Thread-safe
+        - Idempotent
+        - Worker-safe
+        - Queue-safe
+        - Crash-safe
         """
 
         import asyncio
@@ -2290,16 +2295,16 @@ class MemoryManager:
         import time
 
         try:
-            # ------------------------------------------------
+            # ====================================================
             # PREVENT DOUBLE INITIALIZATION
-            # ------------------------------------------------
+            # ====================================================
             if getattr(self, "_initialized_runtime", False):
                 logger.debug("MemoryManager already initialized")
                 return True
 
-            # ------------------------------------------------
-            # THREAD-SAFE INIT LOCK
-            # ------------------------------------------------
+            # ====================================================
+            # THREAD LOCK INIT
+            # ====================================================
             if not hasattr(self, "_runtime_init_lock"):
                 self._runtime_init_lock = threading.RLock()
 
@@ -2311,16 +2316,16 @@ class MemoryManager:
 
                 start_time = time.monotonic()
 
-                # ------------------------------------------------
-                # SAFE DEFAULTS
-                # ------------------------------------------------
+                # ====================================================
+                # BASE FLAGS
+                # ====================================================
                 self._running = False
-                self._worker_task = None
                 self._shutdown_requested = False
+                self._worker_task = None
 
-                # ------------------------------------------------
-                # VALIDATE MEMORY SYSTEMS
-                # ------------------------------------------------
+                # ====================================================
+                # VALIDATE CORE MEMORY SYSTEMS
+                # ====================================================
                 if getattr(self, "episodic", None) is None:
                     logger.warning("⚠ Episodic memory missing")
 
@@ -2330,34 +2335,9 @@ class MemoryManager:
                 if getattr(self, "vector", None) is None:
                     logger.warning("⚠ Vector memory missing")
 
-                # ------------------------------------------------
-                # SAFE ASYNC OBJECTS
-                # ------------------------------------------------
-                try:
-                    asyncio.get_running_loop()
-
-                    # Queue
-                    if (
-                        not hasattr(self, "_operation_queue")
-                        or self._operation_queue is None
-                    ):
-                        self._operation_queue = asyncio.Queue(maxsize=1000)
-
-                    # Lock
-                    if (
-                        not hasattr(self, "_async_lock")
-                        or self._async_lock is None
-                    ):
-                        self._async_lock = asyncio.Lock()
-
-                except RuntimeError:
-                    # No running loop yet → defer async creation safely
-                    self._operation_queue = None
-                    self._async_lock = None
-
-                # ------------------------------------------------
-                # CACHE VALIDATION
-                # ------------------------------------------------
+                # ====================================================
+                # ENSURE CACHE OBJECTS
+                # ====================================================
                 if not hasattr(self, "_frequent_access_cache"):
                     self._frequent_access_cache = {}
 
@@ -2370,54 +2350,100 @@ class MemoryManager:
                 if not hasattr(self, "_query_cache"):
                     self._query_cache = {}
 
-                # ------------------------------------------------
-                # CALLBACK SAFETY
-                # ------------------------------------------------
+                # ====================================================
+                # CALLBACKS
+                # ====================================================
                 if not hasattr(self, "_operation_callbacks"):
                     self._operation_callbacks = []
 
                 if not hasattr(self, "_error_callbacks"):
                     self._error_callbacks = []
 
-                # ------------------------------------------------
-                # STATS SAFETY
-                # ------------------------------------------------
+                # ====================================================
+                # STATS
+                # ====================================================
                 if not hasattr(self, "_stats") or self._stats is None:
                     self._stats = MemoryStats()
 
                 if not hasattr(self, "_operation_history"):
                     self._operation_history = deque(maxlen=1000)
 
-                # ------------------------------------------------
+                if not hasattr(self, "_operation_stats"):
+                    self._operation_stats = defaultdict(
+                        lambda: {
+                            "count": 0,
+                            "success": 0,
+                            "failed": 0,
+                            "total_time_ms": 0,
+                            "avg_time_ms": 0,
+                        }
+                    )
+
+                # ====================================================
+                # SAFE EVENT LOOP HANDLING
+                # ====================================================
+                loop = None
+
+                try:
+                    loop = asyncio.get_running_loop()
+                except RuntimeError:
+                    loop = None
+
+                # ====================================================
+                # ASYNC OBJECTS
+                # ====================================================
+                if loop:
+
+                    if (
+                        not hasattr(self, "_operation_queue")
+                        or self._operation_queue is None
+                    ):
+                        self._operation_queue = asyncio.Queue(maxsize=1000)
+
+                    if (
+                        not hasattr(self, "_async_lock")
+                        or self._async_lock is None
+                    ):
+                        self._async_lock = asyncio.Lock()
+
+                else:
+                    # Delayed creation
+                    self._operation_queue = None
+                    self._async_lock = None
+
+                # ====================================================
                 # MEMORY OPTIMIZATION
-                # ------------------------------------------------
+                # ====================================================
                 try:
                     gc.collect()
                 except Exception:
                     pass
 
-                # ------------------------------------------------
+                # ====================================================
                 # SAFE WORKER START
-                # ------------------------------------------------
-                try:
-                    loop = asyncio.get_running_loop()
+                # ====================================================
+                if loop:
 
-                    if (
-                        hasattr(self, "start_worker")
-                        and callable(self.start_worker)
-                    ):
-                        try:
-                            loop.create_task(self.start_worker())
-                        except Exception as e:
-                            logger.debug(f"Worker auto-start skipped: {e}")
+                    try:
 
-                except RuntimeError:
-                    # No event loop running yet
-                    pass
+                        async def _safe_worker_start():
+                            try:
+                                if (
+                                    hasattr(self, "start_worker")
+                                    and callable(self.start_worker)
+                                ):
+                                    await self.start_worker()
+                            except Exception as e:
+                                logger.error(f"❌ Worker start failed: {e}")
 
-                # ------------------------------------------------
+                        loop.create_task(_safe_worker_start())
+
+                    except Exception as e:
+                        logger.warning(f"⚠ Worker auto-start skipped: {e}")
+
+                # ====================================================
                 # FINALIZE
-                # ------------------------------------------------
+                # ====================================================
                 self._initialized_runtime = True
 
                 init_time = round(
@@ -2432,23 +2458,24 @@ class MemoryManager:
 
                 return True
 
-        # ------------------------------------------------
+        # ====================================================
         # CLEAN CANCELLATION
-        # ------------------------------------------------
+        # ====================================================
         except asyncio.CancelledError:
 
             logger.warning("⚠ MemoryManager initialization cancelled")
 
             try:
                 self._initialized_runtime = False
+                self._running = False
             except Exception:
                 pass
 
             return False
 
-        # ------------------------------------------------
+        # ====================================================
         # FULL ERROR ISOLATION
-        # ------------------------------------------------
+        # ====================================================
         except Exception as e:
 
             try:
@@ -2459,12 +2486,13 @@ class MemoryManager:
             except Exception:
                 pass
 
-            # ------------------------------------------------
+            # ====================================================
             # SAFE RESET
-            # ------------------------------------------------
+            # ====================================================
             try:
                 self._initialized_runtime = False
                 self._running = False
+                self._worker_task = None
             except Exception:
                 pass
 

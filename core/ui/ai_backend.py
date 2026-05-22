@@ -1025,9 +1025,20 @@ class AIBackend:
                     "Backend not ready"
                 )
 
+                # Don’t hard-block the UI forever.
+                # If the real system isn’t connected yet, attempt recovery/fallback.
                 self._emit_status_safe(
                     "⏳ AI loading..."
                 )
+
+                try:
+                    # fallback is designed to work even when system/brain layers are still warming up
+                    self._fallback_thread(text)
+                except Exception as e:
+                    logger.exception("Fallback attempt failed: %s", e)
+                    self._emit_response_safe(
+                        f"❌ Backend unavailable (not ready): {e}"
+                    )
 
                 return
 
