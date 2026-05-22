@@ -1,4 +1,4 @@
-# activity_recognition.py
+# activity_recognition.py - FULLY FIXED VERSION
 
 import cv2
 import numpy as np
@@ -209,6 +209,7 @@ class ActivityRecognitionEngine:
         self.last_activity: Optional[str] = None
         self.last_detected_time: Optional[datetime] = None
         self.prev_frame = None
+        self.prev_gray = None  # FIXED: Store previous grayscale frame separately
         self._running = False
         
         # Motion tracking
@@ -246,62 +247,75 @@ class ActivityRecognitionEngine:
         logger.info(f"✅ Advanced Activity Recognition Engine Initialized - Mode: {self.config.mode.value}")
     
     # --------------------------------------------------
-    # MOTION ANALYSIS (ADVANCED)
+    # MOTION ANALYSIS (ADVANCED) - FIXED
     # --------------------------------------------------
     def _compute_motion_features(self, gray: np.ndarray) -> Dict:
-        """Extract advanced motion features"""
-        if self.prev_frame is None:
-            self.prev_frame = gray
+        """Extract advanced motion features - FIXED: proper shape validation"""
+        # Initialize prev_gray if needed
+        if self.prev_gray is None:
+            self.prev_gray = gray.copy()
             return {"motion_score": 0, "velocity": 0, "acceleration": 0, "direction": 0}
         
-        # Frame difference
-        diff = cv2.absdiff(self.prev_frame, gray)
+        # FIXED: Validate frame shapes match before operations
+        if self.prev_gray.shape != gray.shape:
+            # Resize previous frame to match current frame shape
+            self.prev_gray = cv2.resize(self.prev_gray, (gray.shape[1], gray.shape[0]))
         
-        # Multiple scales of motion
-        motion_pyramid = []
-        for scale in [1, 0.5, 0.25]:
-            scaled = cv2.resize(diff, None, fx=scale, fy=scale)
-            motion_pyramid.append(np.sum(scaled) / 255)
-        
-        # Optical flow (dense)
-        flow = cv2.calcOpticalFlowFarneback(
-            self.prev_frame, gray, None,
-            pyr_scale=0.5, levels=3, winsize=15,
-            iterations=3, poly_n=5, poly_sigma=1.2, flags=0
-        )
-        
-        # Flow magnitude and direction
-        magnitude = np.sqrt(flow[..., 0]**2 + flow[..., 1]**2)
-        direction = np.arctan2(flow[..., 1], flow[..., 0])
-        
-        motion_score = np.mean(magnitude) * 1000
-        
-        # Velocity and acceleration
-        current_velocity = motion_score
-        if len(self.velocity_history) > 0:
-            acceleration = current_velocity - self.velocity_history[-1]
-        else:
-            acceleration = 0
-        
-        self.velocity_history.append(current_velocity)
-        self.acceleration_history.append(acceleration)
-        
-        # Motion direction histogram
-        direction_hist, _ = np.histogram(direction, bins=8)
-        dominant_direction = np.argmax(direction_hist) * 45 if len(direction_hist) > 0 else 0
-        
-        # Update state
-        self.prev_frame = gray
-        
-        return {
-            "motion_score": float(motion_score),
-            "velocity": float(current_velocity),
-            "acceleration": float(acceleration),
-            "direction": float(dominant_direction),
-            "pyramid_scores": [float(s) for s in motion_pyramid],
-            "mean_magnitude": float(np.mean(magnitude)),
-            "std_magnitude": float(np.std(magnitude))
-        }
+        try:
+            # Frame difference with validated shapes
+            diff = cv2.absdiff(self.prev_gray, gray)
+            
+            # Multiple scales of motion
+            motion_pyramid = []
+            for scale in [1, 0.5, 0.25]:
+                scaled = cv2.resize(diff, None, fx=scale, fy=scale)
+                motion_pyramid.append(np.sum(scaled) / 255)
+            
+            # Optical flow (dense) - FIXED: ensure same dimensions
+            flow = cv2.calcOpticalFlowFarneback(
+                self.prev_gray, gray, None,
+                pyr_scale=0.5, levels=3, winsize=15,
+                iterations=3, poly_n=5, poly_sigma=1.2, flags=0
+            )
+            
+            # Flow magnitude and direction
+            magnitude = np.sqrt(flow[..., 0]**2 + flow[..., 1]**2)
+            direction = np.arctan2(flow[..., 1], flow[..., 0])
+            
+            motion_score = np.mean(magnitude) * 1000
+            
+            # Velocity and acceleration
+            current_velocity = motion_score
+            if len(self.velocity_history) > 0:
+                acceleration = current_velocity - self.velocity_history[-1]
+            else:
+                acceleration = 0
+            
+            self.velocity_history.append(current_velocity)
+            self.acceleration_history.append(acceleration)
+            
+            # Motion direction histogram
+            direction_hist, _ = np.histogram(direction, bins=8)
+            dominant_direction = np.argmax(direction_hist) * 45 if len(direction_hist) > 0 else 0
+            
+            # Update state
+            self.prev_gray = gray.copy()
+            
+            return {
+                "motion_score": float(motion_score),
+                "velocity": float(current_velocity),
+                "acceleration": float(acceleration),
+                "direction": float(dominant_direction),
+                "pyramid_scores": [float(s) for s in motion_pyramid],
+                "mean_magnitude": float(np.mean(magnitude)),
+                "std_magnitude": float(np.std(magnitude))
+            }
+            
+        except Exception as e:
+            logger.debug(f"Motion features error: {e}")
+            # Fallback: update prev_gray even on error
+            self.prev_gray = gray.copy()
+            return {"motion_score": 0, "velocity": 0, "acceleration": 0, "direction": 0}
     
     def _smooth_motion(self, motion_score: float) -> float:
         """Apply temporal smoothing to motion"""
@@ -518,7 +532,7 @@ class ActivityRecognitionEngine:
         
         # Check cooldown
         if self.last_alert_time:
-            if current_time - self.last_alert_time < self.config.alert_cooldown:
+            if current_time - self.last_alert_time.timestamp() < self.config.alert_cooldown:
                 return None
         
         # Check if activity is suspicious
@@ -539,10 +553,10 @@ class ActivityRecognitionEngine:
         return None
     
     # --------------------------------------------------
-    # MAIN PROCESSING FRAME
+    # MAIN PROCESSING FRAME - FIXED
     # --------------------------------------------------
     async def process_frame(self, frame: np.ndarray) -> Dict:
-        """Process frame with advanced activity recognition"""
+        """Process frame with advanced activity recognition - FIXED shape validation"""
         if frame is None:
             return {}
         
@@ -550,10 +564,22 @@ class ActivityRecognitionEngine:
         self.frame_count += 1
         
         try:
-            # Convert to grayscale for motion analysis
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            # FIXED: Validate frame is valid
+            if frame.size == 0 or len(frame.shape) < 2:
+                return {}
             
-            # Extract motion features
+            # Convert to grayscale for motion analysis
+            try:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            except Exception as e:
+                logger.debug(f"Color conversion error: {e}")
+                return {}
+            
+            # FIXED: Validate gray frame
+            if gray.size == 0:
+                return {}
+            
+            # Extract motion features (with shape validation inside)
             motion_features = self._compute_motion_features(gray)
             smoothed_motion = self._smooth_motion(motion_features['motion_score'])
             motion_features['motion_score'] = smoothed_motion
@@ -561,21 +587,24 @@ class ActivityRecognitionEngine:
             # Pose estimation (if enabled)
             pose_data = {}
             if self.config.enable_pose and self.pose_engine:
-                keypoints = self.pose_engine.estimate_pose(frame)
-                if keypoints:
-                    pose_data = {
-                        'keypoints': keypoints,
-                        'angles': self.pose_engine.calculate_angles(keypoints)
-                    }
-                    
-                    # Store for gesture recognition
-                    self.keypoint_histories[self.frame_count % 100] = keypoints
-                    if len(self.keypoint_histories) > 50:
-                        # Convert to deque for gesture recognition
-                        recent_keypoints = deque(list(self.keypoint_histories.values())[-30:], maxlen=30)
-                        gestures = self._recognize_gestures(recent_keypoints)
-                        if gestures:
-                            pose_data['gestures'] = gestures
+                try:
+                    keypoints = self.pose_engine.estimate_pose(frame)
+                    if keypoints:
+                        pose_data = {
+                            'keypoints': keypoints,
+                            'angles': self.pose_engine.calculate_angles(keypoints)
+                        }
+                        
+                        # Store for gesture recognition
+                        self.keypoint_histories[self.frame_count % 100] = keypoints
+                        if len(self.keypoint_histories) > 50:
+                            # Convert to deque for gesture recognition
+                            recent_keypoints = deque(list(self.keypoint_histories.values())[-30:], maxlen=30)
+                            gestures = self._recognize_gestures(recent_keypoints)
+                            if gestures:
+                                pose_data['gestures'] = gestures
+                except Exception as e:
+                    logger.debug(f"Pose estimation error in process_frame: {e}")
             
             # Classify activity based on mode
             if self.config.mode == ActivityDetectionMode.MOTION_BASED:
@@ -619,7 +648,7 @@ class ActivityRecognitionEngine:
             
         except Exception as e:
             logger.error(f"Activity recognition error: {e}")
-            return {}
+            return {"activity": "unknown", "confidence": 0, "error": str(e)}
     
     def _classify_activity_basic(self, motion_score: float) -> Tuple[str, float]:
         """Basic motion-based classification"""
@@ -819,6 +848,7 @@ class ActivityRecognitionEngine:
         self.alert_history.clear()
         self.keypoint_histories.clear()
         self.processing_times.clear()
+        self.prev_gray = None  # FIXED: Reset prev_gray
         self.prev_frame = None
         self.last_activity = None
         self.frame_count = 0

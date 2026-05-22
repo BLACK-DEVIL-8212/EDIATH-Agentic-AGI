@@ -30,8 +30,10 @@ def __getattr__(name):
     module_name, attr_name = _LAZY_EXPORTS[name]
     try:
         value = getattr(import_module(module_name, __name__), attr_name)
-    except Exception:
-        value = None
+    except Exception as e:
+        raise ImportError(
+            f"Failed to lazily import {name!r} from {module_name!r}.{attr_name!r}: {e}"
+        ) from e
 
     globals()[name] = value
     return value

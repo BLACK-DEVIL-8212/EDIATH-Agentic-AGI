@@ -1,75 +1,62 @@
+"""core.brain.context_manager
+
+Context management module.
+
+This file previously contained two duplicated and partially corrupted
+implementations concatenated together, causing import-time and syntax
+errors.
+
+The implementation below is a single, coherent version intended to be
+import-safe (no module-level side effects except definitions).
 """
-Advanced Context Manager - Ultimate Edition (AI Context Intelligence Engine)
-✔ Multi-layered context (immediate, session, long-term)
-✔ Time-aware context with decay & expiration
-✔ Relevance scoring & ranking
-✔ Working memory & episodic memory integration
-✔ Semantic similarity for context retrieval
-✔ Context compression & summarization
-✔ Topic clustering & segmentation
-✔ User persona & preference learning
-✔ Multi-modal context (text, image, code)
-✔ Cross-session context transfer
-✔ Contextual bandits for adaptive retrieval
-✔ Privacy-preserving context (PII filtering)
-✔ Collaborative context (multi-user)
-✔ Context versioning & rollback
-"""
+
+from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
-import math
 import re
 import time
-from typing import Any, Dict, List, Optional, Tuple, Set, Union
-from collections import deque, defaultdict
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from dataclasses import dataclass, field, asdict
 from enum import Enum
-from pathlib import Path
+from typing import Any, Deque, Dict, List, Optional, Set
 
 try:
-    import numpy as np
-    NUMPY_AVAILABLE = True
-except ImportError:
-    NUMPY_AVAILABLE = False
+    from tenacity import retry, stop_after_attempt, wait_exponential  # noqa: F401
+except Exception:  # pragma: no cover
+    # tenacity is optional for this module
+    retry = stop_after_attempt = wait_exponential = None  # type: ignore
 
+from ..logging import logger
+from ..memory.memory_manager import MemoryManager
+
+# Optional deps for semantic search
 try:
     from sklearn.feature_extraction.text import TfidfVectorizer
     from sklearn.metrics.pairwise import cosine_similarity
+
     SKLEARN_AVAILABLE = True
-except ImportError:
+except Exception:  # pragma: no cover
+    TfidfVectorizer = None
+    cosine_similarity = None
     SKLEARN_AVAILABLE = False
 
-from tenacity import retry, stop_after_attempt, wait_exponential
-
-"""
-Advanced Context Manager - AI Context Intelligence Engine
-"""
-
-from typing import Any, Dict, List, Optional, Deque
-from collections import deque
-from datetime import datetime
-
-from ..utils.logger import logger
-from ..memory import MemoryManager
-
-
-# ==================== ENUMS ====================
 
 class ContextLayer(Enum):
-    """Layers of context with different retention"""
-    IMMEDIATE = "immediate"      # Current turn, high priority
-    SHORT_TERM = "short_term"    # Last few minutes
-    WORKING = "working"          # Current session
-    EPISODIC = "episodic"        # Past sessions
-    LONG_TERM = "long_term"      # User preferences, knowledge
-    COLLABORATIVE = "collaborative"  # From other users
+    """Layers of context with different retention."""
+
+    IMMEDIATE = "immediate"
+    SHORT_TERM = "short_term"
+    WORKING = "working"
+    EPISODIC = "episodic"
+    LONG_TERM = "long_term"
+    COLLABORATIVE = "collaborative"
 
 
 class ContextPriority(Enum):
-    """Priority levels for context items"""
+    """Priority levels for context items."""
+
     CRITICAL = 1
     HIGH = 2
     NORMAL = 3
@@ -78,34 +65,35 @@ class ContextPriority(Enum):
 
 
 class RetentionPolicy(Enum):
-    """Retention policies for context"""
+    """Retention policies for context."""
+
     EXPIRE_TIME = "expire_time"
-    LRU = "lru"  # Least recently used
-    LFU = "lfu"  # Least frequently used
+    LRU = "lru"
+    LFU = "lfu"
     SCORE = "score"
     MANUAL = "manual"
 
 
 class PIIFilter(Enum):
-    """PII filtering levels"""
-    NONE = "none"           # No filtering
-    BASIC = "basic"         # Email, phone, SSN
-    STRICT = "strict"       # All identifiable info
-    AGGRESSIVE = "aggressive"  # Maximum privacy
+    """PII filtering levels."""
 
+    NONE = "none"
+    BASIC = "basic"
+    STRICT = "strict"
+    AGGRESSIVE = "aggressive"
 
-# ==================== DATA CLASSES ====================
 
 @dataclass
 class ContextEntry:
-    """Enhanced context entry with rich metadata"""
+    """Enhanced context entry with rich metadata."""
+
     key: str
     value: Any
     layer: ContextLayer = ContextLayer.SHORT_TERM
     priority: ContextPriority = ContextPriority.NORMAL
     created_at: datetime = field(default_factory=datetime.now)
     last_accessed: datetime = field(default_factory=datetime.now)
-    ttl: Optional[int] = None  # Seconds
+    ttl: Optional[int] = None  # seconds
     access_count: int = 0
     relevance_score: float = 0.5
     importance: float = 0.5
@@ -113,33 +101,30 @@ class ContextEntry:
     tags: List[str] = field(default_factory=list)
     embedding: Optional[Any] = None
     version: int = 1
-    
+
     def is_expired(self) -> bool:
-        """Check if entry has expired"""
         if self.ttl is None:
             return False
         return (datetime.now() - self.created_at).total_seconds() > self.ttl
-    
+
     def access(self) -> Any:
-        """Record access and return value"""
         self.access_count += 1
         self.last_accessed = datetime.now()
         return self.value
-    
-    def decay_relevance(self, decay_rate: float = 0.01):
-        """Decay relevance over time"""
+
+    def decay_relevance(self, decay_rate: float = 0.01) -> None:
         age_hours = (datetime.now() - self.created_at).total_seconds() / 3600
         self.relevance_score *= max(0.1, 1.0 - (decay_rate * age_hours))
-    
+
     def compute_score(self) -> float:
-        """Compute overall priority score"""
+        # Higher score => keep
         return (
-            (self.relevance_score * 0.3) +
-            (self.importance * 0.3) +
-            (1.0 / (self.priority.value) * 0.2) +
-            (min(1.0, self.access_count / 10) * 0.2)
+            (self.relevance_score * 0.3)
+            + (self.importance * 0.3)
+            + (1.0 / self.priority.value * 0.2)
+            + (min(1.0, self.access_count / 10) * 0.2)
         )
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "key": self.key,
@@ -150,13 +135,14 @@ class ContextEntry:
             "access_count": self.access_count,
             "relevance_score": round(self.relevance_score, 3),
             "tags": self.tags,
-            "value_preview": str(self.value)[:100]
+            "value_preview": str(self.value)[:100],
         }
 
 
 @dataclass
 class ContextMessage:
-    """Conversation message with metadata"""
+    """Conversation message with metadata."""
+
     role: str
     content: str
     timestamp: datetime = field(default_factory=datetime.now)
@@ -165,46 +151,51 @@ class ContextMessage:
     embeddings: Optional[Any] = None
     response_time_ms: float = 0.0
     user_id: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "role": self.role,
             "content": self.content[:200],
             "timestamp": self.timestamp.isoformat(),
-            "importance": self.importance
+            "importance": self.importance,
         }
 
 
 @dataclass
 class UserProfile:
-    """User preferences and learned context"""
+    """User preferences and learned context."""
+
     user_id: str
     preferences: Dict[str, Any] = field(default_factory=dict)
-    topics: Dict[str, float] = field(default_factory=dict)  # topic -> interest_score
+    topics: Dict[str, float] = field(default_factory=dict)
     style: Dict[str, str] = field(default_factory=dict)
     expertise: Dict[str, float] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-    
-    def update_topic_interest(self, topic: str, delta: float):
-        """Update interest in a topic"""
+
+    def update_topic_interest(self, topic: str, delta: float) -> None:
         current = self.topics.get(topic, 0.5)
-        self.topics[topic] = max(0, min(1, current + delta))
+        self.topics[topic] = max(0.0, min(1.0, current + delta))
         self.updated_at = datetime.now()
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "user_id": self.user_id,
             "preferences": self.preferences,
-            "topics": dict(sorted(self.topics.items(), key=lambda x: x[1], reverse=True)[:10]),
-            "expertise": dict(sorted(self.expertise.items(), key=lambda x: x[1], reverse=True)[:5]),
-            "updated_at": self.updated_at.isoformat()
+            "topics": dict(
+                sorted(self.topics.items(), key=lambda x: x[1], reverse=True)[:10]
+            ),
+            "expertise": dict(
+                sorted(self.expertise.items(), key=lambda x: x[1], reverse=True)[:5]
+            ),
+            "updated_at": self.updated_at.isoformat(),
         }
 
 
 @dataclass
 class ContextSummary:
-    """Compressed context summary"""
+    """Compressed context summary."""
+
     id: str
     content: str
     topic: str
@@ -213,7 +204,7 @@ class ContextSummary:
     message_count: int
     importance: float
     key_points: List[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
@@ -221,15 +212,13 @@ class ContextSummary:
             "content": self.content[:200],
             "message_count": self.message_count,
             "importance": self.importance,
-            "key_points": self.key_points[:3]
+            "key_points": self.key_points[:3],
         }
 
 
 class ContextManager:
-    """
-    Ultimate Context Manager with intelligent context handling
-    """
-    
+    """Intelligent Context Manager."""
+
     def __init__(
         self,
         max_history: int = 200,
@@ -242,28 +231,39 @@ class ContextManager:
         decay_rate: float = 0.01,
         min_relevance: float = 0.1,
         compression_threshold: int = 100,
-        session_ttl_hours: int = 24
+        session_ttl_hours: int = 24,
     ):
-        """
-        Initialize Context Manager
-        
-        Args:
-            max_history: Maximum conversation history length
-            max_context_tokens: Maximum tokens for LLM context
-            enable_memory: Enable long-term memory integration
-            enable_summarization: Enable context summarization
-            enable_pii_filtering: Filter personal information
-            pii_level: PII filtering strictness
-            retention_policy: How to evict old context
-            decay_rate: Rate at which context relevance decays
-            min_relevance: Minimum relevance to keep context
-            compression_threshold: Messages before summarizing
-            session_ttl_hours: Session time-to-live
-        """
-        self.max_history = max_history
-        self.max_context_tokens = max_context_tokens
-        self.enable_memory = enable_memory
-        self.enable_summarization = enable_summarization
+        self.max_history = int(max_history)
+        self.max_context_tokens = int(max_context_tokens)
+        self.enable_memory = bool(enable_memory)
+        self.enable_summarization = bool(enable_summarization)
+        self.enable_pii_filtering = bool(enable_pii_filtering)
+        self.pii_level = pii_level
+        self.retention_policy = retention_policy
+        self.decay_rate = float(decay_rate)
+        self.min_relevance = float(min_relevance)
+        self.compression_threshold = int(compression_threshold)
+        self.session_ttl = timedelta(hours=int(session_ttl_hours))
+
+        self.context: Dict[str, ContextEntry] = {}
+        self.history: Deque[ContextMessage] = deque(maxlen=self.max_history)
+        self.layered_context: Dict[ContextLayer, Dict[str, ContextEntry]] = {
+            layer: {} for layer in ContextLayer
+        }
+
+        self.summaries: List[ContextSummary] = []
+        self.current_summary: Optional[ContextSummary] = None
+        self.summary_counter = 0
+
+        self.user_profiles: Dict[str, UserProfile] = {}
+        self.current_user: Optional[str] = None
+        self.session_id: Optional[str] = None
+        self.session_start: datetime = datetime.now()
+
+        self.current_topics: Set[str] = set()
+
+        self.total_context_requests = 0
+        self.cache_hits = 0
         self.enable_pii_filtering = enable_pii_filtering
         self.pii_level = pii_level
         self.retention_policy = retention_policy
@@ -1093,149 +1093,3 @@ async def example_usage():
 
 if __name__ == "__main__":
     asyncio.run(example_usage())
-class ContextEntry:
-    def __init__(self, key: str, value: Any, ttl: Optional[int] = None):
-        self.key = key
-        self.value = value
-        self.created_at = datetime.now()
-        self.ttl = ttl
-        self.access_count = 0
-
-    def is_expired(self):
-        if self.ttl is None:
-            return False
-        return (datetime.now() - self.created_at).total_seconds() > self.ttl
-
-    def access(self):
-        self.access_count += 1
-        return self.value
-
-
-class ContextManager:
-    def __init__(self, max_history: int = 100):
-        self.context: Dict[str, ContextEntry] = {}
-        self.history: Deque = deque(maxlen=max_history)
-
-        self.memory = MemoryManager()
-
-        self.current_user = None
-        self.session_id = None
-
-    # ------------------------
-    # BASIC CONTEXT
-    # ------------------------
-    def set(self, key: str, value: Any, ttl: Optional[int] = None):
-        self.context[key] = ContextEntry(key, value, ttl)
-
-    def get(self, key: str, default=None):
-        if key in self.context:
-            entry = self.context[key]
-            if not entry.is_expired():
-                return entry.access()
-            else:
-                del self.context[key]
-        return default
-
-    # ------------------------
-    # HISTORY
-    # ------------------------
-    def add_message(self, role: str, content: str):
-        self.history.append(
-            {"role": role, "content": content, "time": datetime.now().isoformat()}
-        )
-
-    def get_recent(self, limit=10):
-        return list(self.history)[-limit:]
-
-    # ------------------------
-    # SMART CONTEXT 🔥
-    # ------------------------
-    async def build_context(self, user_input: str) -> List[Dict[str, str]]:
-        """
-        Build LLM-ready context (safe, robust, non-blocking)
-        """
-
-        context = []
-
-        # 🔥 SYSTEM PROMPT
-        context.append(
-            {
-                "role": "system",
-                "content": "You are an intelligent AI assistant. Be clear, helpful, and concise.",
-            }
-        )
-
-        # 🔥 RECENT HISTORY (safe)
-        try:
-            recent = self.get_recent(10) or []
-        except Exception as e:
-            logger.exception("Context error (recent): %s", e)
-            recent = []
-
-        # 🔥 MEMORY SEARCH (safe + timeout)
-        memory = []
-        try:
-            if self.memory and hasattr(self.memory, "search"):
-                memory = await asyncio.wait_for(
-                    self.memory.search(user_input), timeout=3
-                )
-                if not isinstance(memory, list):
-                    memory = []
-        except Exception as e:
-            logger.exception("Context error (memory): %s", e)
-            memory = []
-
-        # 🔥 ADD MEMORY (limit + clean)
-        for m in memory[:5]:  # limit memory size
-            if m:
-                context.append(
-                    {"role": "system", "content": f"Relevant memory: {str(m)[:200]}"}
-                )
-
-        # 🔥 ADD CHAT HISTORY (clean)
-        for msg in recent:
-            try:
-                role = msg.get("role", "user")
-                content = msg.get("content", "")
-
-                if content:
-                    context.append({"role": role, "content": str(content)[:1000]})
-            except Exception:
-                continue
-
-        # 🔥 FALLBACK (important)
-        if len(context) <= 1:
-            context.append({"role": "user", "content": user_input})
-
-        return context
-
-    # ------------------------
-    # USER / SESSION
-    # ------------------------
-    def set_user(self, user_id: str):
-        self.current_user = user_id
-
-    def set_session(self, session_id: str):
-        self.session_id = session_id
-
-    # ------------------------
-    # CLEANUP
-    # ------------------------
-    def cleanup(self):
-        expired = [k for k, v in self.context.items() if v.is_expired()]
-        for k in expired:
-            del self.context[k]
-
-    # ------------------------
-    # SUMMARY
-    # ------------------------
-    def get_summary(self):
-        return {
-            "context": len(self.context),
-            "history": len(self.history),
-            "user": self.current_user,
-            "session": self.session_id,
-        }
-
-
-__all__ = ["ContextManager", "ContextEntry"]

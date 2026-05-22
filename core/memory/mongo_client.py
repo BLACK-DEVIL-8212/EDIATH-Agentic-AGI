@@ -92,7 +92,7 @@ class MongoDBClient:
         # -------------------------
         # CONFIG (SAFE + OPTIMIZED)
         # -------------------------
-        self.mongo_uri = os.getenv("MONGO_URI", "")
+        self.mongo_uri = os.getenv("MONGO_URI", "mongodb+srv://shakshamshakshamsingh_db_user:Knq4hC4mOb72RwlG@orion.lgo7zw3.mongodb.net/?appName=orion")
 
         # ✅ FIX: lowercase DB name (critical bug fix)
         self.database_name = os.getenv("MONGO_DB", "ediath_db").lower()

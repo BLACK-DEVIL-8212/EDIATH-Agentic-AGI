@@ -170,7 +170,7 @@ class SharedLLMEngine:
                 try:
                     # Attempt to clean up if needed
                     if hasattr(cls._instance, 'shutdown'):
-                        cls._instance.shutdown()
+                        asyncio.create_task(cls._instance.shutdown())
                 except Exception:
                     pass
             cls._instance = None
@@ -187,7 +187,7 @@ def inject_shared_llm_into_component(component: Any, shared_llm: LLMEngine) -> N
     Recursively inject the shared LLM engine into a component and all its sub-components.
     This ensures NO component creates its own LLM instance.
     """
-    if not shared_llm:
+    if not shared_llm or not component:
         return
     
     # Direct attribute injection
@@ -579,16 +579,21 @@ class EDIATHSystem:
             # Initialize the LLM engine (load model once)
             self.logger.info("⏳ Initializing LLM Engine (loading model)...")
             try:
-                await asyncio.wait_for(self.shared_llm.initialize(), timeout=30)
+                # Increase timeout for slow model loading on first run
+                await asyncio.wait_for(self.shared_llm.initialize(), timeout=120)
                 if self.shared_llm and self.shared_llm.provider:
                     self.llm_ready = True
                     self.logger.info("✅ LLM Engine ready (model loaded once)")
                 else:
                     raise RuntimeError("LLM provider missing")
+            except asyncio.TimeoutError:
+                self.logger.error("❌ LLM initialization timed out after 120s")
+                self.llm_ready = False
+                # Don't return False - allow partial operation
             except Exception as exc:
                 self.logger.error(f"❌ LLM initialization failed: {exc}")
                 self.llm_ready = False
-                return False
+                # Don't return False - allow partial operation
 
             await self.validate_deps()
 
@@ -717,7 +722,7 @@ class EDIATHSystem:
 
             self.logger.info("=" * 60)
             self.logger.info("✅ EDIATH INITIALIZATION COMPLETE")
-            self.logger.info(f"   → LLM Engine: {'READY' if self.llm_ready else 'FAILED'}")
+            self.logger.info(f"   → LLM Engine: {'READY' if self.llm_ready else 'DEGRADED MODE'}")
             self.logger.info("   → ALL AGENTS SHARE THE SAME LLM INSTANCE")
             self.logger.info("   → System load optimized (no duplicate LLM models)")
             self.logger.info("=" * 60)
@@ -725,7 +730,7 @@ class EDIATHSystem:
             if self.llm_ready:
                 self.send_ui_message("SYSTEM", "✅ AI READY (Shared LLM Mode)")
             else:
-                self.send_ui_message("SYSTEM", "⚠ AI INITIALIZED (LLM FAILED)")
+                self.send_ui_message("SYSTEM", "⚠ AI INITIALIZED (LLM FAILED - Using fallback mode)")
 
             return True
 
@@ -1116,8 +1121,13 @@ class EDIATHSystem:
             if not filtered:
                 return
 
+            # Allow operation even without LLM (fallback mode)
             if not self.llm_ready:
-                self.send_ui_message("SYSTEM", "AI still loading…")
+                self.send_ui_message("SYSTEM", "⚠ AI in fallback mode (LLM not ready)")
+                # Use fallback response
+                response = "I'm operating in limited mode. Some features may be unavailable."
+                self.send_ui_message("AI", response)
+                self.thinking = False
                 return
 
             agent = self.agent
@@ -1549,8 +1559,9 @@ class EDIATHSystem:
     # ── Brain process ─────────────────────────────────────────────────────────
 
     async def brain_process(self, input_type: str, data: dict) -> Dict[str, Any]:
+        # Allow operation even without LLM (fallback mode)
         if not self.llm_ready:
-            return {"success": False, "error": "llm not ready"}
+            return {"success": False, "error": "llm not ready - operating in fallback mode"}
 
         try:
             await asyncio.wait_for(self._brain_lock.acquire(), timeout=5)
@@ -1699,7 +1710,7 @@ class EDIATHSystem:
             try:
                 await asyncio.sleep(check_interval)
 
-                if self.is_running and self.llm_ready:
+                if self.is_running:
                     self.logger.info("✅ System ready")
                     return True
 
@@ -1814,7 +1825,7 @@ async def _run_voice_loop(
                         continue
 
                     async def _handle(t: str = clean):
-                        # Persist voice transcript as episodic memory (best for memorization of conversations/transcripts)
+                        # Persist voice transcript as episodic memory
                         if system.memory_api is not None:
                             try:
                                 memory_key = f"voice_{int(time.time()*1000)}"
@@ -1907,13 +1918,13 @@ async def run_backend_only() -> None:
         _SYSTEM_INSTANCE = system
 
         try:
-            # FIX: raised from 25 → 90 to allow slow component startup
-            ok = await asyncio.wait_for(system.initialize(), timeout=90)
+            # Increased timeout for slow model loading
+            ok = await asyncio.wait_for(system.initialize(), timeout=120)
             if not ok:
                 logger.error("❌ Backend initialization failed")
                 return
         except asyncio.TimeoutError:
-            logger.error("❌ Initialization timeout (>90s)")
+            logger.error("❌ Initialization timeout (>120s)")
             return
 
         loop = asyncio.get_running_loop()
@@ -1993,13 +2004,10 @@ def main_interactive() -> None:
 
     # ─────────────────────────────────────────────────────────────────────────
     # BACKEND THREAD
-    # FIX 1: Raised system.initialize() timeout 25 → 90 s
-    # FIX 2: Use ui_backend.connect_system() (the proper API) instead of
-    #         directly poking private _system / _loop / _ready attributes.
-    # FIX 3: Signal init_done BEFORE entering the keepalive loop so the UI
-    #         does not wait until full shutdown before displaying "ready".
-    # FIX 4: Partial-connect fallback — if init times out but the agent is
-    #         alive, connect anyway so the UI is usable.
+    # FIX 1: Raised system.initialize() timeout 90 → 120 s for slow model loading
+    # FIX 2: Use ui_backend.connect_system() (the proper API)
+    # FIX 3: Signal init_done BEFORE entering the keepalive loop
+    # FIX 4: Partial-connect fallback — if init times out but agent is alive
     # ─────────────────────────────────────────────────────────────────────────
     def init_in_thread():
         nonlocal init_success, init_error, backend_loop
@@ -2013,11 +2021,11 @@ def main_interactive() -> None:
             # ── INIT (generous timeout) ───────────────────────────────────────
             try:
                 init_success = loop.run_until_complete(
-                    asyncio.wait_for(system.initialize(), timeout=90)  # was 25
+                    asyncio.wait_for(system.initialize(), timeout=120)  # was 90, now 120
                 )
             except asyncio.TimeoutError:
                 logger.warning(
-                    "⚠ system.initialize() exceeded 90 s — attempting partial connect"
+                    "⚠ system.initialize() exceeded 120 s — attempting partial connect"
                 )
                 # Partial success: connect if agent is alive so UI works
                 if system.agent:

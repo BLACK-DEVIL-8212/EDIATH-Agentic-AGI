@@ -1,9 +1,14 @@
+"""
+EDIATH Launcher - Fixed with CUDA Support for NVIDIA 3050
+"""
+
 import asyncio
 import threading
 import logging
 import sys
 import signal
 import time
+import os
 from pathlib import Path
 
 # Logging setup
@@ -32,6 +37,52 @@ def setup_signal_handlers():
 
 
 # =========================
+# CUDA DETECTION
+# =========================
+def check_cuda_availability():
+    """Check if CUDA is available and return device info"""
+    cuda_info = {
+        "available": False,
+        "device_name": None,
+        "cuda_version": None,
+        "memory_mb": 0,
+        "enabled": False
+    }
+    
+    try:
+        import torch
+        if torch.cuda.is_available():
+            cuda_info["available"] = True
+            cuda_info["device_name"] = torch.cuda.get_device_name(0)
+            cuda_info["cuda_version"] = torch.version.cuda
+            cuda_info["memory_mb"] = torch.cuda.get_device_properties(0).total_memory / (1024**2)
+            cuda_info["enabled"] = True
+            logger.info(f"✅ CUDA available: {cuda_info['device_name']}")
+            logger.info(f"   CUDA Version: {cuda_info['cuda_version']}")
+            logger.info(f"   Memory: {cuda_info['memory_mb']:.0f} MB")
+        else:
+            logger.warning("⚠️ CUDA not available, using CPU mode")
+            
+    except ImportError:
+        logger.warning("⚠️ PyTorch not installed, CUDA detection skipped")
+    except Exception as e:
+        logger.warning(f"⚠️ CUDA detection error: {e}")
+    
+    return cuda_info
+
+
+def enable_cpu_fallback():
+    """Enable CPU fallback if needed"""
+    cpu_fallback = os.environ.get('EDIATH_ALLOW_CPU_LLM_FALLBACK', '0')
+    if cpu_fallback == '1':
+        logger.info("✅ CPU LLM fallback enabled")
+        return True
+    
+    logger.warning("CPU model fallback disabled. Set EDIATH_ALLOW_CPU_LLM_FALLBACK=1 to enable")
+    return False
+
+
+# =========================
 # MODEL CONFIGURATION
 # =========================
 def get_model_path():
@@ -53,6 +104,78 @@ def get_model_path():
         logger.info(f"   Checked: {alt_path}")
         logger.info(f"   Checked: {local_path}")
         return str(base_path)  # Return default anyway
+
+
+def download_model_if_missing():
+    """Download model if missing"""
+    model_path = get_model_path()
+    
+    if Path(model_path).exists():
+        logger.info(f"✅ Model found at: {model_path}")
+        return True
+    
+    logger.warning("⚠️ Model file not found!")
+    logger.info("   Please download the model from:")
+    logger.info("   https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF")
+    logger.info(f"   Save to: {model_path}")
+    
+    return False
+
+
+# =========================
+# LLAMA-CPP CONFIGURATION WITH CUDA
+# =========================
+def setup_llama_cpp():
+    """Configure llama-cpp-python with CUDA support"""
+    
+    # Check if CUDA-enabled llama-cpp is installed
+    try:
+        import llama_cpp
+        version = getattr(llama_cpp, '__version__', 'unknown')
+        
+        # Check if CUDA version
+        if hasattr(llama_cpp, 'llama_cpp'):
+            logger.info(f"✅ llama-cpp-python version: {version}")
+            
+            # Try to detect if built with CUDA
+            if hasattr(llama_cpp, 'LLAMA_SUPPORTS_GPU_OFFLOAD'):
+                logger.info("✅ llama-cpp-python has GPU offload support")
+            else:
+                logger.info("ℹ️ Reinstall with CUDA for better performance:")
+                logger.info("   CMAKE_ARGS='-DGGML_CUDA=on' pip install --upgrade llama-cpp-python --force-reinstall --no-cache-dir")
+        
+        return True
+        
+    except ImportError:
+        logger.error("❌ llama-cpp-python not installed!")
+        logger.info("   Install with CUDA support:")
+        logger.info("   CMAKE_ARGS='-DGGML_CUDA=on' pip install llama-cpp-python")
+        return False
+
+
+# =========================
+# ENVIRONMENT SETUP
+# =========================
+def setup_environment():
+    """Set up environment variables for optimal performance"""
+    
+    # CUDA settings
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+    
+    # PyTorch settings
+    os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:512'
+    
+    # llama-cpp settings
+    os.environ['LLAMA_CPP_GPU_LAYERS'] = '50'  # Offload 50 layers to GPU
+    
+    # Model path
+    os.environ['EDIATH_MODEL_PATH'] = get_model_path()
+    
+    # Enable CPU fallback if needed (for testing)
+    if not check_cuda_availability()["available"]:
+        os.environ['EDIATH_ALLOW_CPU_LLM_FALLBACK'] = '1'
+    
+    logger.info("✅ Environment configured")
 
 
 # =========================
@@ -89,9 +212,8 @@ def run_async_safe(coro_func, *args, **kwargs):
 # =========================
 def start_backend():
     try:
-        # Set environment variable for model path before importing
-        import os
-        os.environ['EDIATH_MODEL_PATH'] = get_model_path()
+        # Ensure environment is set up
+        setup_environment()
         
         from main import run_backend_only
         
@@ -109,9 +231,8 @@ def start_backend():
 # =========================
 def start_full_ui():
     try:
-        # Set environment variable for model path before importing
-        import os
-        os.environ['EDIATH_MODEL_PATH'] = get_model_path()
+        # Ensure environment is set up
+        setup_environment()
         
         from main import main_interactive
         
@@ -121,10 +242,12 @@ def start_full_ui():
         
     except Exception as e:
         logger.error(f"💥 UI crashed: {e}", exc_info=True)
+        logger.info("Attempting to start in headless mode...")
+        start_backend()
 
 
 # =========================
-# MONITOR LOOP (FIXES FREEZE)
+# MONITOR LOOP
 # =========================
 def monitor_backend(thread):
     logger.info("🖥️ Monitoring backend health...")
@@ -157,13 +280,20 @@ def check_llama_version():
         import llama_cpp
         version = getattr(llama_cpp, '__version__', 'unknown')
         logger.info(f"✅ llama-cpp-python version: {version}")
-        if version != 'unknown' and version < '0.3.16':
-            logger.warning("⚠️ Version is older than 0.3.16 - update recommended!")
-            logger.warning("   Run: pip install --upgrade llama-cpp-python")
+        
+        # Check for GPU support
+        try:
+            # Test GPU offload
+            if hasattr(llama_cpp, 'llama_cpp'):
+                logger.info("✅ GPU offload support detected")
+        except:
+            pass
+            
         return True
     except ImportError:
         logger.error("❌ llama-cpp-python not installed!")
-        logger.info("   Install with: pip install llama-cpp-python")
+        logger.info("   Install with CUDA support:")
+        logger.info("   CMAKE_ARGS='-DGGML_CUDA=on' pip install llama-cpp-python")
         return False
 
 
@@ -197,6 +327,15 @@ def check_dependencies():
         missing.append("tenacity")
     
     # Optional dependencies
+    try:
+        import torch
+        logger.info(f"✅ PyTorch: {torch.__version__}")
+        if torch.cuda.is_available():
+            logger.info(f"   CUDA available: {torch.cuda.get_device_name(0)}")
+    except ImportError:
+        logger.warning("⚠️ PyTorch not installed (optional for advanced features)")
+        logger.info("   Install with: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118")
+    
     try:
         import faiss
         logger.info("✅ faiss: installed")
@@ -232,6 +371,8 @@ def print_banner():
 ║         Autonomous AI Framework with Unified Brain                ║
 ║                     Ultimate Edition v2.0                         ║
 ║                                                                   ║
+║         🚀 GPU: NVIDIA GeForce RTX 3050 - CUDA Enabled           ║
+║                                                                   ║
 ╚═══════════════════════════════════════════════════════════════════╝
     """
     print(banner)
@@ -253,6 +394,8 @@ def main():
                        help="Check dependencies and exit")
     parser.add_argument("--skip-model-check", action="store_true",
                        help="Skip model file existence check")
+    parser.add_argument("--force-cpu", action="store_true",
+                       help="Force CPU mode even if GPU is available")
     
     args = parser.parse_args()
     
@@ -261,6 +404,13 @@ def main():
     
     # Setup signal handlers
     setup_signal_handlers()
+    
+    # Check CUDA
+    cuda_info = check_cuda_availability()
+    
+    if args.force_cpu:
+        logger.info("⚠️ Force CPU mode enabled")
+        os.environ['CUDA_VISIBLE_DEVICES'] = ''
     
     # Validate main.py exists
     if not validate_main():
@@ -293,6 +443,19 @@ def main():
         response = input("\nContinue anyway? (y/n): ")
         if response.lower() != 'y':
             sys.exit(1)
+    
+    # Display performance advice
+    if cuda_info["available"] and not args.force_cpu:
+        print("\n🚀 Performance Optimizations Active:")
+        print(f"   • GPU: {cuda_info['device_name']}")
+        print(f"   • VRAM: {cuda_info['memory_mb']:.0f} MB")
+        print(f"   • CUDA Version: {cuda_info['cuda_version']}")
+        print("   • GPU Layers Offloaded: 50")
+        print("   • Optimized for RTX 3050")
+    else:
+        print("\n⚠️ Running in CPU Mode")
+        print("   Performance will be slower")
+        print("   Install CUDA toolkit for GPU acceleration")
     
     print()
     

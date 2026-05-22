@@ -1,7 +1,0 @@
-flwas i am facing
-
--> no backup memory file (memory.json)
--> chat(listening/speaking/chat) memory not getting updated in mongodb database
--> agents are not working properly 
--> all fles are connected in very improper way 
--> gguf file is too weak

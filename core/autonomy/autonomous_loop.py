@@ -679,11 +679,20 @@ class AutonomousLoop:
                     logger.info("AI: %s…", response[:100])
                     await self.speak(response)
                     self._last_response = response
+                    # Always forward to the UI/system callback if available.
+                    # main.py's UI is wired to system.send_ui_message / _UI_CALLBACK.
+                    if hasattr(self.system, "send_ui_message"):
+                        try:
+                            self.system.send_ui_message("AI", response)
+                        except Exception:
+                            pass
+
                     if hasattr(self.system, "emit"):
                         try:
                             await self.system.emit("response", {"response": response})
                         except Exception:
                             pass
+
 
                 self.processing = False
                 self.thinking   = False

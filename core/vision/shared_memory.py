@@ -15,6 +15,9 @@ import pickle
 import base64
 from pathlib import Path
 
+# ⚠️ CRITICAL FIX: Add numpy import
+import numpy as np
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -93,7 +96,7 @@ class VisionFrame:
     source: DataSource = DataSource.CAMERA
     priority: DataPriority = DataPriority.NORMAL
     metadata: Dict[str, Any] = field(default_factory=dict)
-    embedding: Optional[np.ndarray] = None
+    embedding: Optional[np.ndarray] = None  # Now np is defined!
     hash_id: Optional[str] = None
     
     def __post_init__(self):
@@ -127,8 +130,16 @@ class VisionFrame:
         # Restore embedding if present
         embedding = data.pop('embedding', None)
         frame = cls(**data)
-        if embedding and hasattr(embedding, '__array__'):
-            frame.embedding = np.array(embedding)
+        if embedding is not None:
+            try:
+                # Try to convert back to numpy array
+                if isinstance(embedding, list):
+                    frame.embedding = np.array(embedding)
+                elif isinstance(embedding, np.ndarray):
+                    frame.embedding = embedding
+            except Exception as e:
+                logger.warning(f"Failed to restore embedding: {e}")
+                frame.embedding = None
         
         return frame
 
@@ -614,16 +625,21 @@ class MetricsCollector:
     async def get_stats(self) -> Dict:
         """Get metrics statistics"""
         async with self._lock:
-            return {
+            stats = {
                 "avg_fps": sum(self.frame_rates) / len(self.frame_rates) if self.frame_rates else 0,
                 "max_fps": max(self.frame_rates) if self.frame_rates else 0,
                 "min_fps": min(self.frame_rates) if self.frame_rates else 0,
                 "avg_processing_time_ms": (sum(self.processing_times) / len(self.processing_times) * 1000) if self.processing_times else 0,
-                "p95_processing_time_ms": np.percentile(self.processing_times, 95) * 1000 if self.processing_times else 0,
                 "avg_queue_size": sum(self.queue_sizes) / len(self.queue_sizes) if self.queue_sizes else 0,
                 "error_count": len(self.errors),
                 "last_error": self.errors[-1] if self.errors else None
             }
+            
+            # Add percentile if we have enough data
+            if len(self.processing_times) >= 10:
+                stats["p95_processing_time_ms"] = np.percentile(self.processing_times, 95) * 1000
+            
+            return stats
 
 
 # ------------------------
@@ -1039,5 +1055,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    import numpy as np
     asyncio.run(main())
