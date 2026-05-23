@@ -30,6 +30,81 @@ class Panel(BoxLayout):
         self.rect.pos = self.pos
 
 
+# ───────────── LOADING OVERLAY ─────────────
+class LoadingOverlay(BoxLayout):
+    """Full-screen loading overlay shown until backend is ready."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.opacity = 1
+        self.size_hint = (1, 1)
+        self.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
+        with self.canvas.before:
+            Color(0.05, 0.05, 0.1, 1)
+            self.rect = Rectangle(size=self.size, pos=self.pos)
+        self.bind(size=self._update_rect, pos=self._update_rect)
+
+        # Center content in a vertical box
+        content = BoxLayout(orientation='vertical', size_hint=(None, None), size=(300, 200))
+        content.pos_hint = {'center_x': 0.5, 'center_y': 0.5}
+
+        # Title
+        title = Label(
+            text="EDIATH AI",
+            font_size='28sp',
+            halign='center',
+            valign='middle',
+            color=(0.3, 0.9, 0.5, 1),
+            size_hint_y=0.4
+        )
+        content.add_widget(title)
+
+        # Status message
+        self.status_label = Label(
+            text="Initializing Systems...",
+            font_size='16sp',
+            halign='center',
+            valign='middle',
+            color=(0.7, 0.85, 1, 1),
+            size_hint_y=0.3
+        )
+        content.add_widget(self.status_label)
+
+        # Pulsing dots
+        self.dots = Label(
+            text="●",
+            font_size='18sp',
+            color=(0.3, 0.9, 0.5, 1),
+            size_hint_y=0.3
+        )
+        content.add_widget(self.dots)
+
+        self.add_widget(content)
+
+        # Schedule pulse animation
+        Clock.schedule_interval(self._pulse, 0.5)
+
+    def _update_rect(self, *args):
+        self.rect.size = self.size
+        self.rect.pos = self.pos
+
+    def _pulse(self, dt):
+        dots = ["●", "●●", "●●●"]
+        current = getattr(self, '_dot_index', 0)
+        self._dot_index = (current + 1) % len(dots)
+        self.dots.text = dots[self._dot_index]
+
+    def dismiss(self, *args):
+        """Fade out and remove the overlay."""
+        def fade_out(dt):
+            self.opacity -= 0.1
+            if self.opacity <= 0:
+                Clock.unschedule(fade_out)
+                if self.parent:
+                    self.parent.remove_widget(self)
+        Clock.schedule_interval(fade_out, 0.03)
+
+
 # ───────────── MAIN SCREEN ─────────────
 class DashboardScreen(Screen):
 
@@ -38,8 +113,10 @@ class DashboardScreen(Screen):
 
         # 🔥 Ensure controller exists
         self.controller = controller or AIBackend()
+        self._loading_overlay = None
 
         self.build_ui()
+        self._show_loading_overlay()
 
     # ─────────────────────────────
     # UI BUILD
@@ -120,6 +197,20 @@ class DashboardScreen(Screen):
         # 🔥 Start system updates
         Clock.schedule_once(self.connect_backend, 0.3)
         Clock.schedule_interval(self.update_stats, 1)
+
+    # ─────────────────────────────
+    # LOADING OVERLAY MANAGEMENT
+    # ─────────────────────────────
+    def _show_loading_overlay(self):
+        """Show loading overlay on top of the UI."""
+        self._loading_overlay = LoadingOverlay()
+        self.add_widget(self._loading_overlay)
+
+    def hide_loading_overlay(self, *args):
+        """Dismiss loading overlay when backend is ready."""
+        if self._loading_overlay:
+            self._loading_overlay.dismiss()
+            self._loading_overlay = None
 
     # ─────────────────────────────
     # CONNECT BACKEND

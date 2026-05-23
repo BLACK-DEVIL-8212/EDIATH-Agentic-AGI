@@ -14,7 +14,6 @@ from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
 
-from networkx import k_components
 import yaml
 import logging
 
@@ -9559,7 +9558,7 @@ class EDIATHOrchestrator:
 
             if init_method is None:
 
-                self.logger.warning(
+                self.logger.debug(
                     "Coordinator missing "
                     "initialize_pipeline"
                 )
@@ -12199,7 +12198,7 @@ class EDIATHOrchestrator:
 
         startup_tasks = [
             _start_single(name, comp)
-            for name, comp in k_components.items()
+            for name, comp in components.items()
             if comp is not None
         ]
 
@@ -13606,8 +13605,15 @@ class EDIATHOrchestrator:
 
             if asyncio.iscoroutine(result):
                 result = await asyncio.wait_for(result, timeout=4.0)  # leave 1s buffer
-            elif callable(result):
+            elif callable(result) and not isinstance(result, bool):
+                # Exclude bool/int/str/etc. which are callable types but
+                # should not be awaited (bool is especially dangerous:
+                # callable(True)==True but await True raises TypeError)
                 result = await asyncio.to_thread(result)
+            elif result is not None and not asyncio.iscoroutine(result):
+                # result is a non-None primitive (bool, int, etc.) -
+                # treat as successful startup indicator, do not await
+                pass
 
             # VALIDATE + SUCCESS
             if result is not False:

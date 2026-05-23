@@ -223,511 +223,455 @@ class MongoDBClient:
 
     def _connect(self) -> bool:
         """
-        🚀 Ultimate MongoDB Connection Manager
+        🚀 Production MongoDB Connection Manager
 
-        ✔ DNS-safe
+        Features:
         ✔ Atlas-safe
-        ✔ Unicode-safe
+        ✔ DNS-safe
+        ✔ Thread-safe
+        ✔ Async-safe
+        ✔ TLS-safe
         ✔ Retry-safe
         ✔ Pool-safe
-        ✔ Async-safe
-        ✔ SSL-safe
-        ✔ Memory-safe
         ✔ Crash-safe
+        ✔ Startup-safe
+        ✔ Auto-recovery ready
         """
 
         import os
         import time
         import socket
-        import traceback
         from datetime import datetime
 
-        # =====================================================
-        # BASIC VALIDATION
-        # =====================================================
-
-        if not getattr(self, "mongo_uri", None):
-
-            logger.warning(
-                "MongoDB URI missing"
-            )
-
-            self.enabled = False
-            self.status = ConnectionStatus.FAILED
-
-            return False
-
-        mongo_uri = str(self.mongo_uri).strip()
-
-        if not mongo_uri:
-
-            logger.warning(
-                "MongoDB URI empty"
-            )
-
-            self.enabled = False
-            self.status = ConnectionStatus.FAILED
-
-            return False
-
-        if "disabled" in mongo_uri.lower():
-
-            logger.warning(
-                "MongoDB explicitly disabled"
-            )
-
-            self.enabled = False
-            self.status = ConnectionStatus.FAILED
-
-            return False
-
-        # =====================================================
-        # PREVENT MULTIPLE CONNECTS
-        # =====================================================
+        # =========================================================
+        # PREVENT MULTIPLE CONNECTION ATTEMPTS
+        # =========================================================
 
         if getattr(self, "_connecting", False):
-
-            logger.warning(
-                "Mongo connection already running"
-            )
-
+            logger.warning("MongoDB connection already in progress")
             return False
 
         self._connecting = True
 
-        # =====================================================
-        # RESET STATE
-        # =====================================================
-
-        self.status = ConnectionStatus.CONNECTING
-
-        self._last_connection_attempt = (
-            datetime.utcnow()
-        )
-
-        retries = 0
-
-        max_retries = min(
-
-            getattr(self, "max_retries", 3),
-
-            5
-
-        )
-
-        # =====================================================
-        # SAFE DATABASE NAME
-        # =====================================================
-
         try:
 
-            database_name = str(
+            # =====================================================
+            # RESET STATE
+            # =====================================================
 
+            self.enabled = False
+            self.status = ConnectionStatus.CONNECTING
+            self._last_connection_attempt = datetime.utcnow()
+
+            # =====================================================
+            # VALIDATE URI
+            # =====================================================
+
+            mongo_uri = str(
+                getattr(self, "mongo_uri", "")
+            ).strip()
+
+            if not mongo_uri:
+                logger.error("MongoDB URI missing")
+                self.status = ConnectionStatus.FAILED
+                return False
+
+            if "disabled" in mongo_uri.lower():
+                logger.warning("MongoDB disabled by configuration")
+                self.status = ConnectionStatus.FAILED
+                return False
+
+            # =====================================================
+            # DATABASE NAME
+            # =====================================================
+
+            database_name = str(
                 getattr(
                     self,
                     "database_name",
                     "ediath_db"
                 )
-
-            ).strip()
+            ).strip().lower()
 
             if not database_name:
-
                 database_name = "ediath_db"
 
-        except Exception:
+            self.database_name = database_name
 
-            database_name = "ediath_db"
+            # =====================================================
+            # RETRY CONFIG
+            # =====================================================
 
-        self.database_name = database_name
+            retries = 0
 
-        # =====================================================
-        # MAIN RETRY LOOP
-        # =====================================================
+            max_retries = min(
+                int(getattr(self, "max_retries", 2)),
+                3
+            )
 
-        while retries <= max_retries:
+            # =====================================================
+            # MAIN RETRY LOOP
+            # =====================================================
 
-            try:
-
-                logger.info(
-                    f"MongoDB connecting "
-                    f"({retries + 1}/"
-                    f"{max_retries + 1})"
-                )
-
-                # =================================================
-                # DNS VALIDATION
-                # =================================================
+            while retries <= max_retries:
 
                 try:
 
-                    if "mongodb+srv://" in mongo_uri:
-
-                        host = (
-
-                            mongo_uri
-
-                            .split("@")[-1]
-
-                            .split("/")[0]
-
-                            .split("?")[0]
-
-                        )
-
-                        # FIXED DNS CHECK
-                        socket.getaddrinfo(
-                            host,
-                            27017
-                        )
-
-                except socket.gaierror as dns_error:
-
-                    logger.error(
-                        f"MongoDB DNS resolution failed: "
-                        f"{str(dns_error)}"
+                    logger.info(
+                        f"MongoDB connecting "
+                        f"({retries + 1}/{max_retries + 1})"
                     )
+
+                    # =================================================
+                    # FIXED DNS VALIDATION
+                    # =================================================
+
+                    if mongo_uri.startswith("mongodb+srv://"):
+
+                        try:
+
+                            # Remove protocol
+                            uri_without_protocol = mongo_uri.replace(
+                                "mongodb+srv://",
+                                ""
+                            )
+
+                            # Remove credentials
+                            if "@" in uri_without_protocol:
+                                uri_without_protocol = (
+                                    uri_without_protocol
+                                    .split("@")[1]
+                                )
+
+                            # Extract host only
+                            host = (
+                                uri_without_protocol
+                                .split("/")[0]
+                                .split("?")[0]
+                                .split(",")[0]
+                                .strip()
+                            )
+
+                            # Proper DNS resolution
+                            socket.gethostbyname(host)
+
+                            logger.info(
+                                f"MongoDB DNS resolved: {host}"
+                            )
+
+                        except Exception as dns_error:
+
+                            logger.error(
+                                f"MongoDB DNS resolution failed: "
+                                f"{dns_error}"
+                            )
+
+                            retries += 1
+
+                            if retries > max_retries:
+                                break
+
+                            delay = min(2 ** retries, 3)
+
+                            logger.info(
+                                f"Retrying DNS lookup in {delay}s..."
+                            )
+
+                            time.sleep(delay)
+
+                            continue
+
+                    # =================================================
+                    # CLEAN OLD CLIENT
+                    # =================================================
+
+                    try:
+
+                        old_client = getattr(
+                            self,
+                            "client",
+                            None
+                        )
+
+                        if old_client:
+                            old_client.close()
+
+                    except Exception:
+                        pass
+
+                    self.client = None
+                    self.db = None
+
+                    # =================================================
+                    # CONNECTION PARAMETERS
+                    # =================================================
+
+                    connection_params = {
+
+                        # -----------------------------
+                        # TIMEOUTS
+                        # -----------------------------
+                        "serverSelectionTimeoutMS": 5000,
+                        "connectTimeoutMS": 5000,
+                        "socketTimeoutMS": 10000,
+                        "waitQueueTimeoutMS": 5000,
+
+                        # -----------------------------
+                        # POOLING
+                        # -----------------------------
+                        "maxPoolSize": min(
+                            int(
+                                getattr(
+                                    self,
+                                    "max_pool_size",
+                                    20
+                                )
+                            ),
+                            50
+                        ),
+
+                        "minPoolSize": 0,
+                        "maxIdleTimeMS": 30000,
+
+                        # -----------------------------
+                        # RETRIES
+                        # -----------------------------
+                        "retryWrites": True,
+                        "retryReads": True,
+
+                        # -----------------------------
+                        # APP INFO
+                        # -----------------------------
+                        "appname": "EDIATH_AI",
+
+                        # -----------------------------
+                        # HEARTBEAT
+                        # -----------------------------
+                        "heartbeatFrequencyMS": 10000,
+
+                        # -----------------------------
+                        # UTF SAFETY
+                        # -----------------------------
+                        "unicode_decode_error_handler": "ignore",
+                    }
+
+                    # =================================================
+                    # TLS / SSL CONFIG
+                    # =================================================
+
+                    if getattr(self, "use_ssl", True):
+
+                        connection_params.update({
+
+                            "tls": True,
+                            "tlsAllowInvalidCertificates": False,
+                            "tlsAllowInvalidHostnames": False,
+
+                        })
+
+                        ssl_ca = getattr(
+                            self,
+                            "ssl_ca_file",
+                            None
+                        )
+
+                        if ssl_ca and os.path.exists(ssl_ca):
+
+                            connection_params["tlsCAFile"] = ssl_ca
+
+                    # =================================================
+                    # CREATE CLIENT
+                    # =================================================
+
+                    self.client = MongoClient(
+                        mongo_uri,
+                        **connection_params
+                    )
+
+                    # =================================================
+                    # VERIFY CONNECTION
+                    # =================================================
+
+                    self.client.admin.command(
+                        "ping",
+                        maxTimeMS=3000
+                    )
+
+                    # =================================================
+                    # DATABASE
+                    # =================================================
+
+                    self.db = self.client[database_name]
+
+                    # =================================================
+                    # INIT COLLECTIONS
+                    # =================================================
+
+                    try:
+
+                        self._init_collections()
+
+                    except Exception as collection_error:
+
+                        logger.warning(
+                            f"Collection init warning: "
+                            f"{collection_error}"
+                        )
+
+                    # =================================================
+                    # CREATE INDEXES
+                    # =================================================
+
+                    try:
+
+                        if not getattr(
+                            self,
+                            "_indexes_created",
+                            False
+                        ):
+
+                            self._ensure_indexes()
+
+                    except Exception as index_error:
+
+                        logger.warning(
+                            f"Index init warning: "
+                            f"{index_error}"
+                        )
+
+                    # =================================================
+                    # SUCCESS
+                    # =================================================
+
+                    self.enabled = True
+                    self.status = ConnectionStatus.CONNECTED
+                    self._retry_count = 0
+                    self._reconnecting = False
+
+                    self.stats["last_success"] = (
+                        datetime.utcnow()
+                    )
+
+                    logger.info(
+                        f"✅ MongoDB connected → "
+                        f"{database_name}"
+                    )
+
+                    # =================================================
+                    # CALLBACKS
+                    # =================================================
+
+                    try:
+
+                        self._trigger_connection_callbacks(
+                            ConnectionStatus.CONNECTED
+                        )
+
+                    except Exception:
+                        pass
+
+                    return True
+
+                # =====================================================
+                # NETWORK ERRORS
+                # =====================================================
+
+                except (
+                    errors.ServerSelectionTimeoutError,
+                    errors.ConnectionFailure,
+                    errors.NetworkTimeout,
+                    errors.AutoReconnect,
+                ) as network_error:
 
                     retries += 1
 
-                    time.sleep(
-                        min(2 ** retries, 5)
+                    logger.error(
+                        f"MongoDB network error: "
+                        f"{network_error}"
                     )
 
-                    continue
+                # =====================================================
+                # AUTH FAILURE
+                # =====================================================
 
-                # =================================================
-                # CONNECTION CONFIG
-                # =================================================
+                except errors.OperationFailure as auth_error:
 
-                connection_params = {
-
-                    # ---------------------------------------------
-                    # TIMEOUTS
-                    # ---------------------------------------------
-                    "serverSelectionTimeoutMS": 5000,
-                    "connectTimeoutMS": 5000,
-                    "socketTimeoutMS": 10000,
-                    "waitQueueTimeoutMS": 5000,
-
-                    # ---------------------------------------------
-                    # POOL
-                    # ---------------------------------------------
-                    "maxPoolSize": min(
-
-                        getattr(
-                            self,
-                            "max_pool_size",
-                            20
-                        ),
-
-                        50
-
-                    ),
-
-                    "minPoolSize": 0,
-
-                    "maxIdleTimeMS": 30000,
-
-                    # ---------------------------------------------
-                    # RETRIES
-                    # ---------------------------------------------
-                    "retryWrites": True,
-                    "retryReads": True,
-
-                    # ---------------------------------------------
-                    # APP
-                    # ---------------------------------------------
-                    "appname": "EDIATH_AI",
-
-                    # ---------------------------------------------
-                    # HEARTBEAT
-                    # ---------------------------------------------
-                    "heartbeatFrequencyMS": 10000,
-
-                    # ---------------------------------------------
-                    # UTF SAFE
-                    # ---------------------------------------------
-                    "unicode_decode_error_handler": "ignore",
-
-                }
-
-                # =================================================
-                # SSL CONFIG
-                # =================================================
-
-                if getattr(self, "use_ssl", False):
-
-                    connection_params.update({
-
-                        "tls": True,
-
-                        "tlsAllowInvalidCertificates": False,
-
-                        "tlsAllowInvalidHostnames": False,
-
-                    })
-
-                    ssl_ca = getattr(
-                        self,
-                        "ssl_ca_file",
-                        None
+                    logger.error(
+                        f"MongoDB authentication failed: "
+                        f"{auth_error}"
                     )
 
-                    if ssl_ca and os.path.exists(ssl_ca):
+                    break
 
-                        connection_params["tlsCAFile"] = ssl_ca
+                # =====================================================
+                # UNKNOWN FAILURE
+                # =====================================================
 
-                # =================================================
-                # CLEAN OLD CLIENT
-                # =================================================
+                except Exception as unknown_error:
 
-                try:
-
-                    old_client = getattr(
-                        self,
-                        "client",
-                        None
-                    )
-
-                    if old_client:
-
-                        old_client.close()
-
-                except Exception:
-                    pass
-
-                # =================================================
-                # CREATE CLIENT
-                # =================================================
-
-                self.client = MongoClient(
-
-                    mongo_uri,
-
-                    **connection_params
-
-                )
-
-                # =================================================
-                # VALIDATE CONNECTION
-                # =================================================
-
-                self.client.admin.command(
-
-                    "ping",
-
-                    maxTimeMS=3000
-
-                )
-
-                # =================================================
-                # DATABASE
-                # =================================================
-
-                self.db = self.client[
-                    database_name
-                ]
-
-                # =================================================
-                # INIT COLLECTIONS
-                # =================================================
-
-                try:
-
-                    self._init_collections()
-
-                except Exception as collection_error:
-
-                    logger.warning(
-                        f"Collection init warning: "
-                        f"{collection_error}"
-                    )
-
-                # =================================================
-                # CREATE INDEXES
-                # =================================================
-
-                try:
-
-                    if not getattr(
-                        self,
-                        "_indexes_created",
-                        False
-                    ):
-
-                        self._ensure_indexes()
-
-                except Exception as index_error:
-
-                    logger.warning(
-                        f"Index init warning: "
-                        f"{index_error}"
-                    )
-
-                # =================================================
-                # SUCCESS
-                # =================================================
-
-                self.enabled = True
-
-                self.status = (
-                    ConnectionStatus.CONNECTED
-                )
-
-                self._retry_count = 0
-
-                self._reconnecting = False
-
-                self.stats["last_success"] = (
-                    datetime.utcnow()
-                )
-
-                logger.info(
-                    f"MongoDB connected → "
-                    f"{database_name}"
-                )
-
-                # =================================================
-                # CALLBACKS
-                # =================================================
-
-                try:
-
-                    self._trigger_connection_callbacks(
-
-                        ConnectionStatus.CONNECTED
-
-                    )
-
-                except Exception:
-                    pass
-
-                self._connecting = False
-
-                return True
-
-            # =====================================================
-            # NETWORK FAILURES
-            # =====================================================
-
-            except (
-
-                errors.ServerSelectionTimeoutError,
-
-                errors.ConnectionFailure,
-
-                errors.NetworkTimeout,
-
-                errors.AutoReconnect,
-
-            ) as network_error:
-
-                retries += 1
-
-                logger.error(
-                    f"MongoDB network error: "
-                    f"{str(network_error)}"
-                )
-
-            # =====================================================
-            # AUTH FAILURE
-            # =====================================================
-
-            except errors.OperationFailure as auth_error:
-
-                logger.error(
-                    f"Mongo authentication failed: "
-                    f"{str(auth_error)}"
-                )
-
-                break
-
-            # =====================================================
-            # UNKNOWN FAILURE
-            # =====================================================
-
-            except Exception as unknown_error:
-
-                retries += 1
-
-                try:
+                    retries += 1
 
                     logger.error(
                         f"MongoDB connection failure: "
-                        f"{str(unknown_error)}"
+                        f"{unknown_error}"
                     )
 
-                except Exception:
+                # =====================================================
+                # RETRY DELAY
+                # =====================================================
 
-                    logger.error(
-                        "MongoDB unknown fatal error"
+                if retries <= max_retries:
+
+                    delay = min(2 ** retries, 5)
+
+                    logger.info(
+                        f"Retrying MongoDB connection "
+                        f"in {delay}s..."
                     )
 
-            # =====================================================
-            # RETRY DELAY
-            # =====================================================
+                    time.sleep(delay)
 
-            if retries <= max_retries:
+            # =========================================================
+            # FINAL FAILURE
+            # =========================================================
 
-                delay = min(
-
-                    2 ** retries,
-
-                    5
-
-                )
-
-                logger.info(
-                    f"Retrying MongoDB "
-                    f"in {delay}s..."
-                )
-
-                time.sleep(delay)
-
-        # =====================================================
-        # FINAL FAILURE
-        # =====================================================
-
-        logger.error(
-            "MongoDB connection failed "
-            "(degraded mode)"
-        )
-
-        try:
-
-            if getattr(self, "client", None):
-
-                self.client.close()
-
-        except Exception:
-            pass
-
-        self.client = None
-        self.db = None
-        self.enabled = False
-
-        self.status = ConnectionStatus.FAILED
-
-        self._connecting = False
-        self._reconnecting = False
-
-        # =====================================================
-        # CALLBACKS
-        # =====================================================
-
-        try:
-
-            self._trigger_connection_callbacks(
-
-                ConnectionStatus.FAILED
-
+            logger.error(
+                "MongoDB connection failed "
+                "(degraded mode)"
             )
 
-        except Exception:
-            pass
+            try:
 
-        return False
+                if getattr(self, "client", None):
+                    self.client.close()
+
+            except Exception:
+                pass
+
+            self.client = None
+            self.db = None
+            self.enabled = False
+            self.status = ConnectionStatus.FAILED
+            self._reconnecting = False
+
+            # =========================================================
+            # CALLBACKS
+            # =========================================================
+
+            try:
+
+                self._trigger_connection_callbacks(
+                    ConnectionStatus.FAILED
+                )
+
+            except Exception:
+                pass
+
+            return False
+
+        finally:
+
+            self._connecting = False
 
     def _calculate_retry_delay(self, attempt: int) -> float:
         """Calculate retry delay based on strategy."""

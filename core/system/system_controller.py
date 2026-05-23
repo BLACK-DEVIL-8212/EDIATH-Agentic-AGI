@@ -9689,35 +9689,17 @@ class SystemController:
                             return
 
                         # -----------------------------------------
-                        # PREVENT RECURSIVE HEALING
+                        # PREVENT RECURSIVE HEALING (use lock)
                         # -----------------------------------------
-                        if getattr(
-                            self,
-                            "_healing",
-                            False,
-                        ):
+                        if not hasattr(self, "_heal_lock"):
+                            self._heal_lock = asyncio.Lock()
 
-                            logger.warning(
-                                "Auto-heal already running"
-                            )
-
-                            return
-
-                        # -----------------------------------------
-                        # AUTO HEAL
-                        # -----------------------------------------
-                        self._healing = True
-
-                        try:
+                        async with self._heal_lock:
 
                             await asyncio.wait_for(
                                 self.auto_heal(),
                                 timeout=300,
                             )
-
-                        finally:
-
-                            self._healing = False
 
                     except asyncio.TimeoutError:
 
@@ -9725,17 +9707,11 @@ class SystemController:
                             "Auto-heal timeout"
                         )
 
-                        self._healing = False
-
                     except asyncio.CancelledError:
-
-                        self._healing = False
 
                         raise
 
                     except Exception as exc:
-
-                        self._healing = False
 
                         logger.error(
                             f"Auto-heal failed: {exc}"
@@ -13367,6 +13343,11 @@ class SystemController:
         - unhandled cancellation
         """
 
+        import asyncio
+        import gc
+
+        from datetime import datetime
+
         worker_id = hex(id(asyncio.current_task()))[-6:]
 
         logger.info(
@@ -13375,11 +13356,6 @@ class SystemController:
         )
 
         try:
-
-            import asyncio
-            import gc
-
-            from datetime import datetime
 
             # ---------------------------------------------------------
             # WORKER LOOP
@@ -18605,14 +18581,6 @@ class SystemController:
                     )
                 )
 
-                healing_active = bool(
-                    getattr(
-                        self,
-                        "_healing",
-                        False,
-                    )
-                )
-
                 critical_health = (
                     result["overall"]
                     == "unhealthy"
@@ -18621,7 +18589,6 @@ class SystemController:
                 if (
                     enable_heal
                     and critical_health
-                    and not healing_active
                 ):
 
                     logger.warning(
@@ -18630,24 +18597,27 @@ class SystemController:
 
                     try:
 
-                        self._healing = True
+                        if not hasattr(self, "_heal_lock"):
+                            self._heal_lock = asyncio.Lock()
 
-                        heal_task = (
-                            self.auto_heal()
-                        )
+                        async with self._heal_lock:
 
-                        if asyncio.iscoroutine(
-                            heal_task
-                        ):
-
-                            await asyncio.wait_for(
-                                heal_task,
-                                timeout=120,
+                            heal_task = (
+                                self.auto_heal()
                             )
 
-                        result[
-                            "healing_triggered"
-                        ] = True
+                            if asyncio.iscoroutine(
+                                heal_task
+                            ):
+
+                                await asyncio.wait_for(
+                                    heal_task,
+                                    timeout=120,
+                                )
+
+                            result[
+                                "healing_triggered"
+                            ] = True
 
                     except asyncio.TimeoutError:
 
@@ -18672,10 +18642,6 @@ class SystemController:
                         ].append(
                             "healing_failed"
                         )
-
-                    finally:
-
-                        self._healing = False
 
                 # -----------------------------------------------------
                 # METRICS

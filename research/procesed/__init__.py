@@ -1,1 +1,0 @@
-"""Research data directories."""

@@ -38,6 +38,10 @@ class AIBackend:
         self._shutdown = False
         self._welcomed = False
         self._events: List = []
+        # Event that fires when connect_system completes — used to block
+        # send_user_message until the backend is truly ready instead of
+        # immediately falling back during startup.
+        self._backend_ready = threading.Event()
 
         self._last_request_time = 0.0
         self._min_request_interval = 0.5  # slightly longer to reduce spam
@@ -196,8 +200,7 @@ class AIBackend:
                     loop_running = False
 
                 if not loop_running:
-
-                    logger.warning(
+                    logger.debug(
                         "connect_system: loop not running"
                     )
 
@@ -294,9 +297,14 @@ class AIBackend:
                 self.system = system
                 self.loop = loop
 
+                # Mark ready if we passed all validation checks.
+                # The loop may not be "running" yet (it's still being used for run_until_complete),
+                # but having a valid loop reference + validated system is sufficient.
+                # send_user_message will fall back gracefully if the loop becomes unusable.
                 self._ready = True
                 self._processing = False
                 self._shutdown = False
+                self._backend_ready.set()
 
                 self._last_processing_time = 0.0
                 self._last_request_time = 0.0
@@ -345,26 +353,44 @@ class AIBackend:
                     )
                 )
 
+                # DELAYED WELCOME: Emit welcome only after callbacks are registered
+                # This ensures the welcome message appears in the chat
                 if not welcomed:
 
+                    def _delayed_welcome(dt):
+                        try:
+                            # Only emit if callbacks are registered
+                            if hasattr(self, '_response_callbacks') and self._response_callbacks:
+                                self._emit_response_safe(
+                                    (
+                                        "👋 Hello! I'm EDIATH AI, "
+                                        "your intelligent assistant. "
+                                        "How can I help you today?"
+                                    )
+                                )
+                                self._welcomed = True
+                            else:
+                                # Retry after short delay if no callbacks yet
+                                try:
+                                    from kivy.clock import Clock
+                                    Clock.schedule_once(_delayed_welcome, 0.5)
+                                except Exception:
+                                    pass
+                        except Exception as e:
+                            logger.warning("Delayed welcome failed: %s", e)
+
                     try:
-
-                        self._emit_response_safe(
-                            (
-                                "👋 Hello! I'm EDIATH, "
-                                "your intelligent assistant. "
-                                "How can I help you?"
+                        from kivy.clock import Clock
+                        Clock.schedule_once(_delayed_welcome, 0.3)
+                    except Exception:
+                        # Fallback: emit immediately
+                        try:
+                            self._emit_response_safe(
+                                "👋 Hello! I'm EDIATH AI, your assistant. How can I help you?"
                             )
-                        )
-
-                        self._welcomed = True
-
-                    except Exception as e:
-
-                        logger.warning(
-                            "Welcome message failed: %s",
-                            e,
-                        )
+                            self._welcomed = True
+                        except Exception as e:
+                            logger.warning("Welcome message failed: %s", e)
 
                 # ========================================================
                 # BACKEND PING TEST
@@ -392,7 +418,7 @@ class AIBackend:
 
                 except Exception as e:
 
-                    logger.warning(
+                    logger.debug(
                         "Backend ping failed: %s",
                         e,
                     )
@@ -1021,26 +1047,27 @@ class AIBackend:
             # ============================================================
             if not getattr(self, "_ready", False):
 
-                logger.warning(
-                    "Backend not ready"
-                )
+                # Backend isn’t ready — block briefly waiting for connect_system
+                # to finish rather than immediately falling back.
+                # This prevents startup messages from being lost to the fallback.
+                self._emit_status_safe("⏳ AI connecting...")
 
-                # Don’t hard-block the UI forever.
-                # If the real system isn’t connected yet, attempt recovery/fallback.
-                self._emit_status_safe(
-                    "⏳ AI loading..."
-                )
+                ready_event = getattr(self, "_backend_ready", None)
+                if ready_event is not None:
+                    waited = ready_event.wait(timeout=30)
+                    if not waited:
+                        logger.debug("Backend ready wait timed out")
 
-                try:
-                    # fallback is designed to work even when system/brain layers are still warming up
-                    self._fallback_thread(text)
-                except Exception as e:
-                    logger.exception("Fallback attempt failed: %s", e)
-                    self._emit_response_safe(
-                        f"❌ Backend unavailable (not ready): {e}"
-                    )
-
-                return
+                # After wait, re-check
+                if not getattr(self, "_ready", False):
+                    logger.debug("Using fallback (still not ready after wait)")
+                    self._emit_status_safe("⏳ AI loading...")
+                    try:
+                        self._fallback_thread(text)
+                    except Exception as e:
+                        logger.exception("Fallback attempt failed: %s", e)
+                        self._emit_response_safe(f"❌ Backend unavailable: {e}")
+                    return
 
             # ============================================================
             # SYSTEM CHECK
@@ -1441,9 +1468,7 @@ class AIBackend:
                     )
 
                     try:
-                        self._emit_response_safe(
-                            "⚠️ Request cancelled"
-                        )
+                        self._emit_response_safe("⚠️ Request cancelled")
                     except Exception:
                         pass
 

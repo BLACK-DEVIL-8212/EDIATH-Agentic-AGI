@@ -220,4 +220,5 @@ class ChatScreen(Screen):
     # ─────────────────────────────
     def receive_ai_message(self, text):
         safe_print("⬅ Received from backend:", text)
-        Clock.schedule_once(lambda dt: self.add_message("AI", text), 0)
+        if text:
+            Clock.schedule_once(lambda dt: self.add_message("AI", text), 0)

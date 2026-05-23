@@ -1809,6 +1809,9 @@ async def _run_voice_loop(
     pending: List[asyncio.Task] = []
     max_tasks = 5
 
+    # Activate wakeword detection
+    system.start_wakeword()
+
     while system.is_running:
         try:
             text = system._get_listener_text()
@@ -2039,12 +2042,13 @@ def main_interactive() -> None:
             # ── CONNECT BACKEND → UI ──────────────────────────────────────────
             if init_success:
                 # Use the documented API, not private attributes
+                # Connect after the backend loop is alive.
+                # If connect_system detects loop not running, it will fall back safely.
                 ui_backend.connect_system(system, loop)
 
                 if system.listener:
-                    system._tasks.append(
-                        loop.create_task(_run_voice_loop(system, loop))
-                    )
+                    system._tasks.append(loop.create_task(_run_voice_loop(system, loop)))
+
 
         except Exception as exc:
             init_error = exc
@@ -2123,10 +2127,30 @@ def main_interactive() -> None:
                     Clock.schedule_once(check_ready, 0.5)
                     return
 
+                # Dismiss loading overlay when backend ready
+                try:
+                    screen = getattr(self.root, "current_screen", None)
+                    if screen and hasattr(screen, "hide_loading_overlay"):
+                        screen.hide_loading_overlay()
+                except Exception:
+                    pass
+
                 if init_success:
                     ui_backend.set_response_callback(self._on_ai_response)
                     ui_backend.set_status_callback(self._on_status_update)
                     logger.info("✅ Backend connected (Shared LLM enabled)")
+
+                    # Emit ready message to chat
+                    def send_welcome(dt):
+                        try:
+                            screen = getattr(self.root, "current_screen", None)
+                            if screen:
+                                chat = getattr(screen, "chat_panel", None)
+                                if chat and hasattr(chat, "add_message"):
+                                    chat.add_message("SYSTEM", "✅ EDIATH AI Ready! Type a message or speak...")
+                        except Exception:
+                            pass
+                    Clock.schedule_once(send_welcome, 0.3)
                 else:
                     logger.error("❌ Backend failed: %s", init_error)
 

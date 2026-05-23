@@ -33,8 +33,9 @@ from dataclasses import dataclass, field
 from enum import Enum, IntEnum
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
+import json
+
 import numpy as np
-from pydantic import json
 
 from ..utils.logger import logger
 
