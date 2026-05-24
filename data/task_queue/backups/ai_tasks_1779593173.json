@@ -1,6 +1,6 @@
 {
-  "name": "automation",
-  "queue_type": "fifo",
+  "name": "ai_tasks",
+  "queue_type": "priority",
   "tasks": [],
   "running_tasks": [],
   "completed_tasks": [],
@@ -18,6 +18,6 @@
     "error_count": 0,
     "success_rate": 100.0
   },
-  "timestamp": "2026-05-23T09:36:47.294839",
+  "timestamp": "2026-05-24T08:56:13.024093",
   "version": "2.2.0"
 }

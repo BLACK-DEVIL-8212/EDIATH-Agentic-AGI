@@ -317,7 +317,7 @@ class MongoDBClient:
 
                 try:
 
-                    logger.info(
+                    logger.debug(
                         f"MongoDB connecting "
                         f"({retries + 1}/{max_retries + 1})"
                     )
@@ -355,13 +355,13 @@ class MongoDBClient:
                             # Proper DNS resolution
                             socket.gethostbyname(host)
 
-                            logger.info(
+                            logger.debug(
                                 f"MongoDB DNS resolved: {host}"
                             )
 
                         except Exception as dns_error:
 
-                            logger.error(
+                            logger.warning(
                                 f"MongoDB DNS resolution failed: "
                                 f"{dns_error}"
                             )
@@ -373,7 +373,7 @@ class MongoDBClient:
 
                             delay = min(2 ** retries, 3)
 
-                            logger.info(
+                            logger.debug(
                                 f"Retrying DNS lookup in {delay}s..."
                             )
 

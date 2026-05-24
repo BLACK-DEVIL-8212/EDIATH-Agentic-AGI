@@ -170,7 +170,10 @@ class SharedLLMEngine:
                 try:
                     # Attempt to clean up if needed
                     if hasattr(cls._instance, 'shutdown'):
-                        asyncio.create_task(cls._instance.shutdown())
+                        try:
+                            asyncio.create_task(cls._instance.shutdown())
+                        except Exception:
+                            pass
                 except Exception:
                     pass
             cls._instance = None
@@ -237,7 +240,7 @@ AI_QUEUE_NAME = "ai_tasks"
 AUTOMATION_QUEUE_NAME = "automation"
 LEARNING_QUEUE_NAME = "learning"
 LISTENER_POLL_INTERVAL = 0.05
-LISTENER_READY_TIMEOUT = 10.0
+LISTENER_READY_TIMEOUT = 30.0
 MAX_LISTENER_RESTARTS = 5
 LISTENER_BACKOFF_BASE = 1.0
 
@@ -699,8 +702,22 @@ class EDIATHSystem:
 
             # ── VISION ────────────────────────────────────────────────────────
             try:
+                # Check system memory before allocating heavy vision resources
+                # Proactively skip vision if memory is above 85% to prevent OOM kills
                 if os.environ.get("EDIATH_LIGHT_MODE", "0") == "1":
                     raise RuntimeError("Light mode enabled")
+
+                try:
+                    import psutil
+                    mem_pct = psutil.virtual_memory().percent
+                    if mem_pct >= 85.0:
+                        self.logger.warning(
+                            "⚠️ System memory at %.1f%% — skipping vision (would trigger OOM)",
+                            mem_pct,
+                        )
+                        raise RuntimeError(f"Memory pressure ({mem_pct:.1f}%)")
+                except ImportError:
+                    pass  # psutil unavailable — proceed with vision anyway
 
                 self.vision_engine_instance = vision_engine.VisionEngine()
                 inject_shared_llm_into_component(self.vision_engine_instance, self.shared_llm)
@@ -1222,7 +1239,10 @@ class EDIATHSystem:
                     pass
 
             if self.speaker and response:
-                asyncio.create_task(self.speaker.speak(response))
+                try:
+                    asyncio.create_task(self.speaker.speak(response))
+                except Exception:
+                    pass
 
             self.logger.info("Response length: %d", len(response))
 
@@ -1464,7 +1484,10 @@ class EDIATHSystem:
     def _safe_get_stats(obj: Any) -> Dict[str, Any]:
         try:
             if obj and hasattr(obj, "get_stats"):
-                return obj.get_stats() or {}
+                result = obj.get_stats()
+                if asyncio.iscoroutine(result):
+                    return {}  # async get_stats can't be awaited in sync context
+                return result or {}
         except Exception:
             pass
         return {}
@@ -1785,11 +1808,11 @@ async def _run_voice_loop(
             asyncio.to_thread(system._start_listener), timeout=LISTENER_READY_TIMEOUT
         )
     except asyncio.TimeoutError:
-        system.logger.error("Listener start timeout")
+        system.logger.warning("Listener start timeout -- voice disabled, continuing")
         return
 
     if not started:
-        system.logger.error("Could not start listener")
+        system.logger.warning("Could not start listener -- voice disabled")
         return
 
     try:
@@ -1798,7 +1821,7 @@ async def _run_voice_loop(
             timeout=LISTENER_READY_TIMEOUT + 2,
         )
     except asyncio.TimeoutError:
-        system.logger.error("Listener readiness timeout")
+        system.logger.warning("Listener readiness timeout -- voice disabled")
         return
 
     if not ready:
@@ -1854,7 +1877,10 @@ async def _run_voice_loop(
                                 out = res["output"]
                                 system.send_ui_message("AI", out)
                                 if system.speaker:
-                                    asyncio.create_task(system.speaker.speak(out))
+                                    try:
+                                        asyncio.create_task(system.speaker.speak(out))
+                                    except Exception:
+                                        pass
                         except asyncio.TimeoutError:
                             system.logger.warning("Voice processing timeout")
                         except Exception as exc:
@@ -2046,8 +2072,10 @@ def main_interactive() -> None:
                 # If connect_system detects loop not running, it will fall back safely.
                 ui_backend.connect_system(system, loop)
 
+                # Voice loop intentionally disabled to prevent startup crashes
+                # Voice features can be re-enabled once stable
                 if system.listener:
-                    system._tasks.append(loop.create_task(_run_voice_loop(system, loop)))
+                    system.logger.info("Voice listener present but disabled for stability")
 
 
         except Exception as exc:
@@ -2145,11 +2173,13 @@ def main_interactive() -> None:
                         try:
                             screen = getattr(self.root, "current_screen", None)
                             if screen:
-                                chat = getattr(screen, "chat_panel", None)
+                                chat = getattr(screen, "chat_screen", None)
                                 if chat and hasattr(chat, "add_message"):
                                     chat.add_message("SYSTEM", "✅ EDIATH AI Ready! Type a message or speak...")
-                        except Exception:
-                            pass
+                                else:
+                                    logger.warning("send_welcome: chat_screen not found on screen")
+                        except Exception as exc:
+                            logger.warning("send_welcome failed: %s", exc)
                     Clock.schedule_once(send_welcome, 0.3)
                 else:
                     logger.error("❌ Backend failed: %s", init_error)

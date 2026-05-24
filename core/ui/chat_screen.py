@@ -74,6 +74,9 @@ class ChatScreen(Screen):
 
         self.build_ui()
 
+        # Register response callback so AI replies reach the chat
+        self.set_controller(controller)
+
     # 🔥 ADD THIS (CRITICAL FIX)
     def set_controller(self, controller):
         """Attach backend controller to ChatScreen safely."""

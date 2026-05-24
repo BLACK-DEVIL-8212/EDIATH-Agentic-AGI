@@ -386,7 +386,7 @@ class AIBackend:
                         # Fallback: emit immediately
                         try:
                             self._emit_response_safe(
-                                "👋 Hello! I'm EDIATH AI, your assistant. How can I help you?"
+                                "👋 PROGRAM COMPLTELY INITIALIZED ..."
                             )
                             self._welcomed = True
                         except Exception as e:
@@ -1124,30 +1124,9 @@ class AIBackend:
 
                 loop_running = False
 
-            if not loop_running:
-
-                logger.warning(
-                    "⚠️ Backend loop dead — fallback mode"
-                )
-
-                try:
-
-                    self._fallback_thread(
-                        text
-                    )
-
-                except Exception as e:
-
-                    logger.exception(
-                        "Fallback thread failed: %s",
-                        e,
-                    )
-
-                    self._emit_response_safe(
-                        f"❌ Backend unavailable: {e}"
-                    )
-
-                return
+            # NOTE: We do NOT check loop.is_running() here because it returns
+            # False when called from a different thread, even when loop IS running.
+            # run_coroutine_threadsafe handles all thread-safety internally.
 
             # ============================================================
             # TIMING
@@ -1233,9 +1212,6 @@ class AIBackend:
                 # lock processing
                 self._processing = True
 
-            # ============================================================
-            # UPDATE STATE
-            # ============================================================
             self._last_request_time = now
             self._last_processing_time = now
             self._request_counter += 1
@@ -1446,9 +1422,7 @@ class AIBackend:
                     # ----------------------------------------------------
                     # FUTURE RESULT
                     # ----------------------------------------------------
-                    result = fut.result(
-                        timeout=0
-                    )
+                    result = fut.result()
 
                     logger.debug(
                         "Request #%s completed",
@@ -1524,20 +1498,16 @@ class AIBackend:
                         pass
 
                 # --------------------------------------------------------
-                # FINAL CLEANUP
+                # FINAL CLEANUP (GUARANTEED)
                 # --------------------------------------------------------
                 finally:
+                    # ALWAYS reset processing flag - this is critical
+                    self._processing = False
 
                     try:
-
-                        self._show_typing_indicator_safe(
-                            False
-                        )
-
+                        self._show_typing_indicator_safe(False)
                     except Exception:
                         pass
-
-                    self._processing = False
 
                     # cleanup completed futures
                     try:
@@ -1628,6 +1598,15 @@ class AIBackend:
                 pass
 
             self._processing = False
+
+        finally:
+        
+            # GUARANTEED cleanup - reset processing on ANY exit
+            self._processing = False
+            try:
+                self._show_typing_indicator_safe(False)
+            except Exception:
+                pass
 
     # ─────────────────────────────────────────────────────────────────
     # FALLBACK: run in a fresh thread when the main loop is dead/busy
@@ -2426,33 +2405,23 @@ class AIBackend:
                     if callable(result):
 
                         logger.warning(
-                            "brain_process returned callable"
+                            "brain_process returned callable — falling through to agent.run"
                         )
 
                         result = None
 
-                    # FIX:
-                    # prevents:
                     # function.items crashes
-                    if result is not None and not isinstance(
-                        result,
-                        dict,
-                    ):
+                    if result is not None and not isinstance(result, dict):
 
                         try:
 
-                            response = str(
-                                result
-                            ).strip()
+                            response = str(result).strip()
 
                         except Exception:
 
                             response = ""
 
-                    elif isinstance(
-                        result,
-                        dict,
-                    ):
+                    elif isinstance(result, dict):
 
                         success = bool(
                             result.get(
@@ -5977,42 +5946,32 @@ class AIBackend:
 
     def _emit_response_safe(self, text: str):
         """Emit response to UI safely with error handling"""
-        
+
         def _update():
             try:
                 if hasattr(self, '_response_callbacks') and self._response_callbacks:
-                    # Create a copy to avoid modification during iteration
                     callbacks = list(self._response_callbacks)
+                    logger.info("[RESPONSE EMIT] %d callbacks registered, text length=%d", len(callbacks), len(text) if text else 0)
                     for cb in callbacks:
                         try:
                             if text:
-                                logger.debug("📤 Emitting response to UI: %s", text[:100])
+                                logger.info("📤 Calling response callback with: %s", text[:100])
                             else:
-                                logger.debug("📤 Emitting empty response to UI")
-                            
-                            # Call the callback safely
+                                logger.info("📤 Calling response callback with empty text")
+
                             cb(text)
-                            
+                            logger.info("✅ Response callback completed successfully")
+
                         except TypeError as e:
-                            # Handle case where callback expects different arguments
-                            logger.debug(f"Callback argument error: {e}")
-                            try:
-                                # Try with no arguments
-                                cb()
-                            except Exception:
-                                pass
+                            logger.error("Callback TypeError (callback requires text arg): %s", e)
                         except Exception as e:
-                            logger.exception(f"Response callback error: {e}")
-                            
+                            logger.error("Response callback error: %s", e)
+
                 else:
-                    # No callbacks registered
-                    if text:
-                        logger.debug("[RESPONSE] %s", text[:100] if len(text) > 100 else text)
-                    else:
-                        logger.debug("[RESPONSE] (empty)")
-                        
+                    logger.warning("[RESPONSE EMIT] No callbacks registered! Text: %s", text[:100] if text and len(text) > 100 else text)
+
             except Exception as e:
-                logger.error(f"Error in _emit_response_safe: {e}")
+                logger.error("Error in _emit_response_safe _update: %s", e)
         
         try:
             # Check if Clock is available (Kivy environment)
@@ -6048,15 +6007,9 @@ class AIBackend:
                             cb(text)
                             
                         except TypeError as e:
-                            # Handle case where callback expects different arguments
-                            logger.debug(f"Status callback argument error: {e}")
-                            try:
-                                # Try with no arguments
-                                cb()
-                            except Exception:
-                                pass
+                            logger.error("Status callback TypeError: %s", e)
                         except Exception as e:
-                            logger.exception(f"Status callback error: {e}")
+                            logger.error("Status callback error: %s", e)
                             
                 else:
                     # No callbacks registered
@@ -6241,28 +6194,9 @@ class AIBackend:
                 # ========================================================
                 try:
 
-                    # bound methods → weakref
-                    if hasattr(
-                        func,
-                        "__self__",
-                    ) and hasattr(
-                        func,
-                        "__func__",
-                    ):
-
-                        callback_ref = weakref.WeakMethod(
-                            func
-                        )
-
-                        self._response_callbacks.append(
-                            callback_ref
-                        )
-
-                    else:
-
-                        self._response_callbacks.append(
-                            func
-                        )
+                    # Store bound methods and regular functions directly
+                    # WeakMethod causes issues with Kivy Clock callback invocation
+                    self._response_callbacks.append(func)
 
                 except Exception:
 
@@ -6472,28 +6406,8 @@ class AIBackend:
                 # ========================================================
                 try:
 
-                    # bound methods → weakref
-                    if hasattr(
-                        func,
-                        "__self__",
-                    ) and hasattr(
-                        func,
-                        "__func__",
-                    ):
-
-                        callback_ref = weakref.WeakMethod(
-                            func
-                        )
-
-                        self._status_callbacks.append(
-                            callback_ref
-                        )
-
-                    else:
-
-                        self._status_callbacks.append(
-                            func
-                        )
+                    # Store bound methods and regular functions directly
+                    self._status_callbacks.append(func)
 
                 except Exception:
 
