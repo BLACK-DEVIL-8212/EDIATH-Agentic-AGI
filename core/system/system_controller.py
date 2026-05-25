@@ -11869,11 +11869,15 @@ class SystemController:
                         )
 
                     # ---------------------------------------------
-                    # GARBAGE COLLECTION
+                    # GARBAGE COLLECTION (non-blocking)
                     # ---------------------------------------------
                     try:
 
-                        gc.collect()
+                        def _gc_collect():
+                            gc.collect()
+
+                        loop = asyncio.get_running_loop()
+                        await loop.run_in_executor(None, _gc_collect)
 
                         logger.info(
                             "♻️ Garbage collection completed"
@@ -12235,8 +12239,6 @@ class SystemController:
             logger.warning(
                 "Auto-heal cancelled"
             )
-
-            raise
 
         # -------------------------------------------------------------
         # HARD FAILURE
@@ -15017,9 +15019,14 @@ class SystemController:
 
                 except Exception as exc:
 
-                    logger.warning(
-                        f"Resource validation failed: {exc}"
-                    )
+                    if "critically high" in str(exc):
+                        logger.warning(
+                            f"⚠ {exc}"
+                        )
+                    else:
+                        logger.warning(
+                            f"Resource validation failed: {exc}"
+                        )
 
                 # -----------------------------------------------------
                 # COMMAND ROUTER STARTUP
@@ -15669,7 +15676,7 @@ class SystemController:
 
                             await asyncio.wait_for(
                                 result,
-                                timeout=20,
+                                timeout=45,
                             )
 
                 except asyncio.TimeoutError:
@@ -16760,7 +16767,14 @@ class SystemController:
                         == 0
                     ):
 
-                        gc.collect()
+                        def _gc_collect():
+                            gc.collect()
+
+                        try:
+                            loop = asyncio.get_running_loop()
+                            await loop.run_in_executor(None, _gc_collect)
+                        except Exception:
+                            pass
 
                 except Exception:
                     pass
@@ -18586,6 +18600,13 @@ class SystemController:
                     == "unhealthy"
                 )
 
+                # Cooldown check: skip if auto-heal ran recently
+                now = time.monotonic()
+                last_heal = getattr(self, "_last_heal_time", 0)
+                heal_cooldown = 60.0  # seconds
+                if now - last_heal < heal_cooldown:
+                    enable_heal = False
+
                 if (
                     enable_heal
                     and critical_health
@@ -18783,7 +18804,11 @@ class SystemController:
                 "Health check cancelled"
             )
 
-            raise
+            return {
+                "overall": "unknown",
+                "status": "cancelled",
+                "timestamp": time.time(),
+            }
 
         # -------------------------------------------------------------
         # HARD FAILURE

@@ -12,7 +12,7 @@ class AIBackend:
     """
     Proxy between the Kivy UI and the real EDIATHSystem living in main.py.
     Does NOT create its own system — it connects to main._SYSTEM_INSTANCE.
-
+433 
     Uses DIRECT async calls with timeouts instead of relying on _UI_CALLBACK
     or the heavy process_user_input pipeline, ensuring responses always come
     back even if memory/context/decision layers hang.
@@ -198,14 +198,15 @@ class AIBackend:
                 except Exception:
 
                     loop_running = False
-
-                if not loop_running:
-                    logger.debug(
-                        "connect_system: loop not running"
+                    logger.warning(
+                        "connect_system: loop.is_running() raised %s",
+                        e,
                     )
 
-                    self._emit_status_safe(
-                        "⚠️ Backend loop offline"
+                if not loop_running:
+                    logger.warning(
+                        "connect_system: loop not running (will set _ready anyway "
+                        "and let send_user_message handle dead-loop detection)"
                     )
 
                 # ========================================================
@@ -297,14 +298,25 @@ class AIBackend:
                 self.system = system
                 self.loop = loop
 
-                # Mark ready if we passed all validation checks.
-                # The loop may not be "running" yet (it's still being used for run_until_complete),
-                # but having a valid loop reference + validated system is sufficient.
-                # send_user_message will fall back gracefully if the loop becomes unusable.
-                self._ready = True
-                self._processing = False
-                self._shutdown = False
-                self._backend_ready.set()
+                # Only mark ready if the loop is confirmed running.
+                # send_user_message will fall back gracefully if the loop is dead,
+                # so we don't need to set _ready here when loop isn't running.
+                if loop_running:
+                    self._ready = True
+                    self._processing = False
+                    self._shutdown = False
+                    self._backend_ready.set()
+                else:
+                    # Loop not running — still store system/loop reference
+                    # but don't set _ready. send_user_message will wait for
+                    # the event to be set, or detect the live loop directly.
+                    self._ready = False
+                    self._processing = False
+                    self._shutdown = False
+                    logger.info(
+                        "Backend loop not running — _ready=False, "
+                        "waiting for loop to start"
+                    )
 
                 self._last_processing_time = 0.0
                 self._last_request_time = 0.0
@@ -1045,7 +1057,19 @@ class AIBackend:
             # ============================================================
             # BACKEND READY CHECK
             # ============================================================
-            if not getattr(self, "_ready", False):
+            backend_ready = getattr(self, "_ready", False)
+            system = getattr(self, "system", None)
+            loop = getattr(self, "loop", None)
+
+            if not backend_ready:
+
+                # DIAGNOSTIC: log system/loop state before any waits
+                logger.info(
+                    "DIAG pre-wait: _ready=%s, system=%s, loop=%s",
+                    backend_ready,
+                    "None" if system is None else "set",
+                    "None" if loop is None else "set",
+                )
 
                 # Backend isn’t ready — block briefly waiting for connect_system
                 # to finish rather than immediately falling back.
@@ -1058,9 +1082,44 @@ class AIBackend:
                     if not waited:
                         logger.debug("Backend ready wait timed out")
 
-                # After wait, re-check
-                if not getattr(self, "_ready", False):
-                    logger.debug("Using fallback (still not ready after wait)")
+                # Re-check after waiting
+                backend_ready = getattr(self, "_ready", False)
+
+                # DIAGNOSTIC: log system/loop state after wait
+                system_after = getattr(self, "system", None)
+                loop_after = getattr(self, "loop", None)
+                logger.info(
+                    "DIAG post-wait: _ready=%s, system=%s, loop=%s",
+                    backend_ready,
+                    "None" if system_after is None else "set",
+                    "None" if loop_after is None else "set",
+                )
+
+                # If backend is now ready, proceed through normal path.
+                # If system+loop are present but _ready flag is False, the backend
+                # connected but the flag wasn’t set — try normal path anyway.
+                # Only fall back when system is genuinely missing.
+                system = getattr(self, "system", None)
+                loop = getattr(self, "loop", None)
+
+                if not backend_ready and system is not None and loop is not None:
+                    # Backend connected but _ready flag not set — bypass flag
+                    # and go through normal processing path directly.
+                    logger.info(
+                        "Backend connected but flag not set — bypassing fallback"
+                    )
+                    backend_ready = True
+
+                if not backend_ready:
+                    # Backend is genuinely not ready — fall back.
+                    # Ensure _processing is cleared since _fallback_thread won’t do it.
+                    self._processing = False
+                    logger.warning(
+                        "Using fallback: _ready=%s, system=%s, loop=%s",
+                        backend_ready,
+                        "None" if system is None else "set",
+                        "None" if loop is None else "set",
+                    )
                     self._emit_status_safe("⏳ AI loading...")
                     try:
                         self._fallback_thread(text)
@@ -1072,12 +1131,6 @@ class AIBackend:
             # ============================================================
             # SYSTEM CHECK
             # ============================================================
-            system = getattr(
-                self,
-                "system",
-                None,
-            )
-
             if system is None:
 
                 logger.warning(
@@ -1093,12 +1146,6 @@ class AIBackend:
             # ============================================================
             # LOOP VALIDATION
             # ============================================================
-            loop = getattr(
-                self,
-                "loop",
-                None,
-            )
-
             if loop is None:
 
                 logger.error(
@@ -1108,6 +1155,12 @@ class AIBackend:
                 self._emit_status_safe(
                     "❌ No event loop"
                 )
+
+                self._show_typing_indicator_safe(
+                    False
+                )
+
+                self._processing = False
 
                 return
 
@@ -1119,6 +1172,38 @@ class AIBackend:
                 loop_running = bool(
                     loop.is_running()
                 )
+
+            except RuntimeError:
+
+                # Loop is dead/corrupt — fall back immediately
+                # rather than letting run_coroutine_threadsafe fail.
+                loop_running = False
+                logger.warning(
+                    "Backend event loop is dead"
+                )
+
+                self._show_typing_indicator_safe(
+                    False
+                )
+
+                self._processing = False
+
+                self._emit_status_safe(
+                    "⚠️ Backend recovering..."
+                )
+
+                try:
+                    self._fallback_thread(text)
+                except Exception as e:
+                    logger.exception(
+                        "Fallback after dead loop failed: %s",
+                        e,
+                    )
+                    self._emit_response_safe(
+                        f"❌ Backend unavailable: {e}"
+                    )
+
+                return
 
             except Exception:
 
@@ -1429,6 +1514,12 @@ class AIBackend:
                         request_id,
                     )
 
+                    # Emit response on success (NOT just on errors)
+                    try:
+                        self._emit_response_safe(result)
+                    except Exception:
+                        pass
+
                     return result
 
                 # --------------------------------------------------------
@@ -1663,6 +1754,15 @@ class AIBackend:
                 return
 
             # ============================================================
+            # INIT CALLBACKS (defensive — may not be set in fallback context)
+            # ============================================================
+            if not hasattr(self, "_response_callbacks"):
+                self._response_callbacks = []
+
+            if not hasattr(self, "_status_callbacks"):
+                self._status_callbacks = []
+
+            # ============================================================
             # PREVENT THREAD STORM
             # ============================================================
             active_threads = int(
@@ -1765,15 +1865,17 @@ class AIBackend:
 
                         if system is None:
 
-                            return (
-                                "⚠️ System unavailable."
+                            # System not yet connected — skip strategies 1-3
+                            # and go straight to last resort.
+                            logger.warning(
+                                "Fallback: system not connected yet"
                             )
 
                         # =================================================
                         # STRATEGY 1
                         # brain_process
                         # =================================================
-                        try:
+                        if system is not None:
 
                             brain_process = getattr(
                                 system,
@@ -1781,91 +1883,47 @@ class AIBackend:
                                 None,
                             )
 
-                            if callable(
-                                brain_process
-                            ):
-
-                                logger.info(
-                                    "Fallback: brain_process"
-                                )
-
-                                coro = brain_process(
-
-                                    "text",
-
-                                    {
-                                        "text": text,
-                                        "timestamp": time.time(),
-                                    },
-                                )
-
-                                # FIX:
-                                # bool await crash
-                                if inspect.isawaitable(
-                                    coro
-                                ):
-
-                                    result = await asyncio.wait_for(
-
-                                        coro,
-
-                                        timeout=20.0,
+                            if callable(brain_process):
+                                try:
+                                    logger.info(
+                                        "Fallback: brain_process"
                                     )
 
-                                else:
+                                    coro = brain_process(
+                                        "text",
+                                        {
+                                            "text": text,
+                                            "timestamp": time.time(),
+                                        },
+                                    )
 
-                                    result = coro
-
-                                # FIX:
-                                # function.items crash
-                                if isinstance(
-                                    result,
-                                    dict,
-                                ):
-
-                                    if result.get(
-                                        "success"
-                                    ):
-
-                                        output = result.get(
-                                            "output",
-                                            ""
+                                    if inspect.isawaitable(coro):
+                                        result = await asyncio.wait_for(
+                                            coro,
+                                            timeout=20.0,
                                         )
+                                    else:
+                                        result = coro
 
-                                        if output:
-
-                                            return str(
-                                                output
-                                            ).strip()
-
-                                elif result is not None:
-
-                                    value = str(
-                                        result
-                                    ).strip()
-
-                                    if value:
-
-                                        return value
-
-                        except asyncio.TimeoutError:
-
-                            logger.error(
-                                "Fallback brain_process timeout"
-                            )
-
-                        except Exception as e:
-
-                            logger.exception(
-                                "Fallback brain_process failed: %s",
-                                e,
-                            )
+                                    if isinstance(result, dict):
+                                        if result.get("success"):
+                                            output = result.get("output", "")
+                                            if output:
+                                                return str(output).strip()
+                                    elif result is not None:
+                                        value = str(result).strip()
+                                        if value:
+                                            return value
+                                except asyncio.TimeoutError:
+                                    logger.error("Fallback brain_process timeout")
+                                except Exception as e:
+                                    logger.exception("Fallback brain_process failed: %s", e)
 
                         # =================================================
                         # STRATEGY 2
                         # agent.run
                         # =================================================
-                        try:
+                        if system is not None:
 
                             agent = getattr(
                                 system,
@@ -1881,61 +1939,36 @@ class AIBackend:
                                     None,
                                 )
 
-                                if callable(
-                                    run_method
-                                ):
-
-                                    logger.info(
-                                        "Fallback: agent.run"
-                                    )
-
-                                    coro = run_method(
-                                        text
-                                    )
-
-                                    if inspect.isawaitable(
-                                        coro
-                                    ):
-
-                                        result = await asyncio.wait_for(
-
-                                            coro,
-
-                                            timeout=15.0,
+                                if callable(run_method):
+                                    try:
+                                        logger.info(
+                                            "Fallback: agent.run"
                                         )
 
-                                    else:
+                                        coro = run_method(text)
 
-                                        result = coro
+                                        if inspect.isawaitable(coro):
+                                            result = await asyncio.wait_for(
+                                                coro,
+                                                timeout=15.0,
+                                            )
+                                        else:
+                                            result = coro
 
-                                    if result is not None:
-
-                                        value = str(
-                                            result
-                                        ).strip()
-
-                                        if value:
-
-                                            return value
-
-                        except asyncio.TimeoutError:
-
-                            logger.error(
-                                "Fallback agent timeout"
-                            )
-
-                        except Exception as e:
-
-                            logger.exception(
-                                "Fallback agent failed: %s",
-                                e,
-                            )
+                                        if result is not None:
+                                            value = str(result).strip()
+                                            if value:
+                                                return value
+                                    except asyncio.TimeoutError:
+                                        logger.error("Fallback agent timeout")
+                                    except Exception as e:
+                                        logger.exception("Fallback agent failed: %s", e)
 
                         # =================================================
                         # STRATEGY 3
                         # DIRECT LLM
                         # =================================================
-                        try:
+                        if system is not None:
 
                             llm = getattr(
                                 system,
@@ -1951,49 +1984,28 @@ class AIBackend:
                                     None,
                                 )
 
-                                if callable(
-                                    generate
-                                ):
-
-                                    logger.info(
-                                        "Fallback: direct LLM"
-                                    )
-
-                                    coro = generate(
-                                        text
-                                    )
-
-                                    if inspect.isawaitable(
-                                        coro
-                                    ):
-
-                                        result = await asyncio.wait_for(
-
-                                            coro,
-
-                                            timeout=15,
+                                if callable(generate):
+                                    try:
+                                        logger.info(
+                                            "Fallback: direct LLM"
                                         )
 
-                                    else:
+                                        coro = generate(text)
 
-                                        result = coro
+                                        if inspect.isawaitable(coro):
+                                            result = await asyncio.wait_for(
+                                                coro,
+                                                timeout=15,
+                                            )
+                                        else:
+                                            result = coro
 
-                                    if result is not None:
-
-                                        value = str(
-                                            result
-                                        ).strip()
-
-                                        if value:
-
-                                            return value
-
-                        except Exception as e:
-
-                            logger.exception(
-                                "Fallback LLM failed: %s",
-                                e,
-                            )
+                                        if result is not None:
+                                            value = str(result).strip()
+                                            if value:
+                                                return value
+                                    except Exception as e:
+                                        logger.exception("Fallback LLM failed: %s", e)
 
                         # =================================================
                         # LAST RESORT
@@ -5982,10 +5994,9 @@ class AIBackend:
                 # Fallback for non-Kivy environment
                 import threading
                 threading.Timer(0, _update).start()
-                
         except Exception as e:
-            # Ultimate fallback - execute directly
-            logger.warning(f"Failed to schedule response emission: {e}")
+            # Ultimate fallback - execute directly when Clock is unavailable or fails
+            logger.warning("Failed to schedule response emission: %s", e)
             _update()
 
     def _emit_status_safe(self, text: str):

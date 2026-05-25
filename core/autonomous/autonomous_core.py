@@ -523,7 +523,10 @@ class AutonomousCoreEngine:
             for comp in components:
                 if hasattr(comp, "initialize"):
                     try:
-                        await comp.initialize()
+                        if asyncio.iscoroutinefunction(comp.initialize):
+                            await comp.initialize()
+                        else:
+                            comp.initialize()
                     except Exception as e:
                         logger.warning(f"Component init failed: {comp} - {e}")
             

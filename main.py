@@ -1486,7 +1486,8 @@ class EDIATHSystem:
             if obj and hasattr(obj, "get_stats"):
                 result = obj.get_stats()
                 if asyncio.iscoroutine(result):
-                    return {}  # async get_stats can't be awaited in sync context
+                    result.close()  # Prevent "never awaited" warning
+                    return {}
                 return result or {}
         except Exception:
             pass

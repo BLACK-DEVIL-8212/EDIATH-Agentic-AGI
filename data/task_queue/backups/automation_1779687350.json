@@ -1,6 +1,6 @@
 {
-  "name": "learning",
-  "queue_type": "round_robin",
+  "name": "automation",
+  "queue_type": "fifo",
   "tasks": [],
   "running_tasks": [],
   "completed_tasks": [],
@@ -18,6 +18,6 @@
     "error_count": 0,
     "success_rate": 100.0
   },
-  "timestamp": "2026-05-24T09:35:06.184640",
+  "timestamp": "2026-05-25T11:05:50.136358",
   "version": "2.2.0"
 }
