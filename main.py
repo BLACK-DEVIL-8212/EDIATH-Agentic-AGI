@@ -13,11 +13,6 @@ from typing import Dict, Any, Optional, List
 
 import yaml
 
-# ── Kivy environment flags (must be set before any kivy import) ──────────────
-os.environ.setdefault("KIVY_NO_CONSOLELOG", "1")
-os.environ.setdefault("KIVY_NO_FILELOG", "1")
-os.environ.setdefault("KIVY_NO_ARGS", "1")
-
 # ── stdout encoding ──────────────────────────────────────────────────────────
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
@@ -92,14 +87,6 @@ try:
 except Exception as _e:
     logger.debug("FilterAction not importable: %s", _e)
     _FilterAction = None
-
-# ── Optional: Kivy ───────────────────────────────────────────────────────────
-try:
-    from kivy.clock import Clock as KivyClock
-    _KIVY_AVAILABLE = True
-except Exception:
-    KivyClock = None
-    _KIVY_AVAILABLE = False
 
 # ── Optional: AudioListener ──────────────────────────────────────────────────
 try:
@@ -372,7 +359,11 @@ class EDIATHSystem:
         self.background_thinker = BackgroundThinker(self)
 
         # Audio
-        self.listener = AudioListener() if AudioListener else None
+        try:
+            self.listener = AudioListener() if AudioListener else None
+        except Exception as _e:
+            logger.warning("AudioListener unavailable (missing PyAudio?): %s", _e)
+            self.listener = None
         self.speaker = Speaker()
         self.wakeword = Wakeword()
 
@@ -393,6 +384,7 @@ class EDIATHSystem:
         self.software_builder = software_builder.SoftwareBuilder()
 
         # UI references
+        self._ui_callback = None
         self.ui_window = None
         self.chat_panel = None
         self.status_bar = None
@@ -533,7 +525,6 @@ class EDIATHSystem:
 
         try:
             deps["audio_listener"] = AudioListener is not None
-            deps["kivy"] = _KIVY_AVAILABLE
             deps["config_file"] = CONFIG_PATH.exists()
             deps["llm_engine"] = self.shared_llm is not None
             deps["event_loop"] = asyncio.get_running_loop() is not None
@@ -1115,6 +1106,9 @@ class EDIATHSystem:
     def set_backend_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         self._backend_loop = loop
 
+    def set_ui_callback(self, callback: callable) -> None:
+        self._ui_callback = callback
+
     async def _process_user_input_async(self, user_input: str) -> None:
         try:
             if not self.is_running or not user_input:
@@ -1305,46 +1299,13 @@ class EDIATHSystem:
             return
         self._last_ui_message = content
 
-        if _UI_CALLBACK:
+        if self._ui_callback:
             try:
-                # Prefer callback signature (role, content) if supported
-                try:
-                    _UI_CALLBACK(role, content)
-                except TypeError:
-                    _UI_CALLBACK(content)
+                self._ui_callback(role, content)
             except Exception as exc:
                 self.logger.debug("UI callback error: %s", exc)
-
-        if not _KIVY_AVAILABLE or KivyClock is None:
+        else:
             logger.info("[%s] %s", role, content)
-            return
-
-        def _update_ui(dt: float) -> None:
-            try:
-                if self.chat_panel and hasattr(self.chat_panel, "add_message"):
-                    self.chat_panel.add_message(role, content)
-                else:
-                    print(f"[UI/{role}] {content}")
-            except Exception as exc:
-                self.logger.debug("ChatPanel error: %s", exc)
-
-            try:
-                if self.status_bar and hasattr(self.status_bar, "update_status"):
-                    self.status_bar.update_status(content[:80])
-            except Exception as exc:
-                self.logger.debug("StatusBar error: %s", exc)
-
-            try:
-                if self.overlay and hasattr(self.overlay, "update_status"):
-                    self.overlay.update_status(content[:100])
-            except Exception as exc:
-                self.logger.debug("Overlay error: %s", exc)
-
-        try:
-            KivyClock.schedule_once(_update_ui, 0)
-        except Exception as exc:
-            self.logger.warning("Kivy scheduling failed: %s", exc)
-            logger.warning("[FALLBACK/%s] %s", role, content)
 
     # ── Autonomous reasoning ──────────────────────────────────────────────────
 
@@ -1917,27 +1878,6 @@ async def _run_voice_loop(
 # Run modes
 # ─────────────────────────────────────────────────────────────────────────────
 
-def run_ui_only() -> None:
-    """Run a minimal Kivy UI with no backend."""
-    try:
-        from kivy.app import App
-        from kivy.uix.label import Label
-        from kivy.uix.boxlayout import BoxLayout
-
-        class SimpleUI(App):
-            def build(self):
-                layout = BoxLayout(orientation="vertical")
-                layout.add_widget(Label(text="EDIATH AI", font_size="24sp"))
-                layout.add_widget(
-                    Label(text="UI Mode — Backend not loaded", font_size="16sp")
-                )
-                return layout
-
-        SimpleUI().run()
-    except Exception as exc:
-        logger.error("UI failed: %s", exc)
-
-
 async def run_backend_only() -> None:
     """Run only the async backend with stability, restart, and timeout protection."""
     global _SYSTEM_INSTANCE
@@ -2008,56 +1948,33 @@ async def run_backend_only() -> None:
         logger.info("👋 Backend stopped")
 
 
-def main_interactive() -> None:
-    """Stable UI + backend runner with shared LLM injection."""
+def main_web() -> None:
+    """Run the web UI + backend with shared LLM injection."""
     global _SYSTEM_INSTANCE
-
-    from kivy.app import App
-    from kivy.core.window import Window
-    from kivy.uix.screenmanager import ScreenManager
-    from kivy.clock import Clock
 
     config = _load_or_create_config()
     system = EDIATHSystem(orchestrator=EDIATHOrchestrator(config))
     _SYSTEM_INSTANCE = system
     system.is_running = True
 
-    from core.ui.ai_backend import AIBackend
-
-    ui_backend = AIBackend()
-    ui_backend.start()
-
     init_success = False
     init_error = None
     init_done = threading.Event()
-    backend_loop = None
 
-    # ─────────────────────────────────────────────────────────────────────────
-    # BACKEND THREAD
-    # FIX 1: Raised system.initialize() timeout 90 → 120 s for slow model loading
-    # FIX 2: Use ui_backend.connect_system() (the proper API)
-    # FIX 3: Signal init_done BEFORE entering the keepalive loop
-    # FIX 4: Partial-connect fallback — if init times out but agent is alive
-    # ─────────────────────────────────────────────────────────────────────────
     def init_in_thread():
-        nonlocal init_success, init_error, backend_loop
+        nonlocal init_success, init_error
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        backend_loop = loop
         system.set_backend_loop(loop)
 
         try:
-            # ── INIT (generous timeout) ───────────────────────────────────────
             try:
                 init_success = loop.run_until_complete(
-                    asyncio.wait_for(system.initialize(), timeout=120)  # was 90, now 120
+                    asyncio.wait_for(system.initialize(), timeout=120)
                 )
             except asyncio.TimeoutError:
-                logger.warning(
-                    "⚠ system.initialize() exceeded 120 s — attempting partial connect"
-                )
-                # Partial success: connect if agent is alive so UI works
+                logger.warning("⚠ system.initialize() exceeded 120 s — attempting partial connect")
                 if system.agent:
                     system.is_running = True
                     init_success = True
@@ -2065,54 +1982,23 @@ def main_interactive() -> None:
                 else:
                     init_success = False
                     init_error = "Initialization timed out and no agent available"
-
-            # ── CONNECT BACKEND → UI ──────────────────────────────────────────
-            if init_success:
-                # Use the documented API, not private attributes
-                # Connect after the backend loop is alive.
-                # If connect_system detects loop not running, it will fall back safely.
-                ui_backend.connect_system(system, loop)
-
-                # Voice loop intentionally disabled to prevent startup crashes
-                # Voice features can be re-enabled once stable
-                if system.listener:
-                    system.logger.info("Voice listener present but disabled for stability")
-
-
         except Exception as exc:
             init_error = exc
             init_success = False
             logger.error("💥 Backend crash: \n%s", traceback.format_exc())
-
         finally:
-            # ── SIGNAL UI (CRITICAL FIX) ─────────────────────────────────────
-            # Must happen BEFORE keepalive so check_ready() in the Kivy thread
-            # is unblocked while the system is still alive.
             init_done.set()
 
-        # ── KEEP ALIVE (runs after UI has been notified) ──────────────────────
         if init_success:
-
             async def keepalive():
                 while system.is_running:
                     await asyncio.sleep(1)
-                    if getattr(system, "thinking", False):
-                        if not hasattr(system, "_thinking_timer"):
-                            system._thinking_timer = 0
-                        system._thinking_timer += 1
-                        if system._thinking_timer > 30:
-                            system.logger.warning("Reset stuck thinking state")
-                            system.thinking = False
-                            system._thinking_timer = 0
-                    else:
-                        system._thinking_timer = 0
 
             try:
                 loop.run_until_complete(keepalive())
             except Exception as exc:
                 logger.warning("Keepalive exited: %s", exc)
 
-        # ── CLEAN SHUTDOWN ────────────────────────────────────────────────────
         try:
             loop.run_until_complete(system.shutdown())
         except Exception:
@@ -2125,105 +2011,128 @@ def main_interactive() -> None:
 
         loop.close()
 
-    # ── UI IMPORT ─────────────────────────────────────────────────────────────
+    threading.Thread(target=init_in_thread, daemon=True).start()
+
+    from core.ui.web_ui_server import WebUIServer
+
+    web = WebUIServer(host="127.0.0.1", port=8000, static_dir="core/ui/web")
+    web.on_user_prompt = system.process_user_input
+
+    def _relay(role: str, content: str) -> None:
+        try:
+            web.push_message(role, content)
+        except Exception:
+            pass
+
+    system.set_ui_callback(_relay)
+    web.start_background()
+
+    logger.info("Web UI running at http://127.0.0.1:8000")
+
+    init_done.wait()
+    if not init_success:
+        logger.error("❌ Backend failed: %s", init_error)
+
     try:
-        from core.ui.dashboard_screen import DashboardScreen
-    except ImportError as exc:
-        logger.error("❌ UI load failed: %s", exc)
-        system.is_running = False
-        return
+        while system.is_running:
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        pass
+
+    system.is_running = False
+    web.shutdown()
+    logger.info("👋 System shutdown complete")
+
+
+def main_qt() -> None:
+    """Run the EDIATH backend with a PyQt6 desktop UI."""
+    global _SYSTEM_INSTANCE
+
+    config = _load_or_create_config()
+    system = EDIATHSystem(orchestrator=EDIATHOrchestrator(config))
+    _SYSTEM_INSTANCE = system
+    system.is_running = True
+
+    init_success = False
+    init_error = None
+    init_done = threading.Event()
+
+    def init_in_thread():
+        nonlocal init_success, init_error
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        system.set_backend_loop(loop)
+        try:
+            try:
+                init_success = loop.run_until_complete(
+                    asyncio.wait_for(system.initialize(), timeout=120)
+                )
+            except asyncio.TimeoutError:
+                logger.warning("⚠ system.initialize() exceeded 120 s — attempting partial connect")
+                if system.agent:
+                    system.is_running = True
+                    init_success = True
+                    logger.info("Partial connect — agent available, continuing")
+                else:
+                    init_success = False
+                    init_error = "Initialization timed out and no agent available"
+        except Exception as exc:
+            init_error = exc
+            init_success = False
+            logger.error("💥 Backend crash: \n%s", traceback.format_exc())
+        finally:
+            init_done.set()
+        if init_success:
+            async def keepalive():
+                while system.is_running:
+                    await asyncio.sleep(1)
+            try:
+                loop.run_until_complete(keepalive())
+            except Exception as exc:
+                logger.warning("Keepalive exited: %s", exc)
+        try:
+            loop.run_until_complete(system.shutdown())
+        except Exception:
+            pass
+        try:
+            loop.run_until_complete(loop.shutdown_asyncgens())
+        except Exception:
+            pass
+        loop.close()
 
     threading.Thread(target=init_in_thread, daemon=True).start()
 
-    # ── KIVY APP ──────────────────────────────────────────────────────────────
-    class EDIATHKivyApp(App):
-        def __init__(self, backend=None, **kwargs):
-            super().__init__(**kwargs)
-            self.backend = backend
+    from core.ui.web_ui_server import WebUIServer
 
-        def build(self):
-            Window.title = "EDIATH AI (Shared LLM Mode)"
-            Window.size = (1280, 800)
-            sm = ScreenManager()
-            dashboard = DashboardScreen(name="dashboard")
-            dashboard.controller = self.backend
-            sm.add_widget(dashboard)
-            return sm
+    web = WebUIServer(host="127.0.0.1", port=8000, static_dir="core/ui/web")
+    web.on_user_prompt = system.process_user_input
 
-        def on_start(self):
-            def check_ready(dt):
-                if not init_done.is_set():
-                    Clock.schedule_once(check_ready, 0.5)
-                    return
+    def _relay(role: str, content: str) -> None:
+        try:
+            web.push_message(role, content)
+        except Exception:
+            pass
 
-                # Dismiss loading overlay when backend ready
-                try:
-                    screen = getattr(self.root, "current_screen", None)
-                    if screen and hasattr(screen, "hide_loading_overlay"):
-                        screen.hide_loading_overlay()
-                except Exception:
-                    pass
+    system.set_ui_callback(_relay)
+    web.start_background()
 
-                if init_success:
-                    ui_backend.set_response_callback(self._on_ai_response)
-                    ui_backend.set_status_callback(self._on_status_update)
-                    logger.info("✅ Backend connected (Shared LLM enabled)")
+    logger.info("Backend running — starting Qt UI")
 
-                    # Emit ready message to chat
-                    def send_welcome(dt):
-                        try:
-                            screen = getattr(self.root, "current_screen", None)
-                            if screen:
-                                chat = getattr(screen, "chat_screen", None)
-                                if chat and hasattr(chat, "add_message"):
-                                    chat.add_message("SYSTEM", "✅ EDIATH AI Ready! Type a message or speak...")
-                                else:
-                                    logger.warning("send_welcome: chat_screen not found on screen")
-                        except Exception as exc:
-                            logger.warning("send_welcome failed: %s", exc)
-                    Clock.schedule_once(send_welcome, 0.3)
-                else:
-                    logger.error("❌ Backend failed: %s", init_error)
+    init_done.wait()
+    if not init_success:
+        logger.error("❌ Backend failed: %s", init_error)
+        return
 
-            Clock.schedule_once(check_ready, 0.5)
+    from core.ui.qt_ui import run_ui
+    run_ui(backend_host="127.0.0.1", backend_port=8000)
 
-        def _on_ai_response(self, text: str):
-            try:
-                screen = getattr(self.root, "current_screen", None)
-                if not screen:
-                    return
-                chat = getattr(screen, "chat_panel", None)
-                if chat:
-                    chat.add_message("AI", text)
-                bar = getattr(screen, "status_bar", None)
-                if bar:
-                    bar.update_status(text[:50])
-            except Exception as exc:
-                logger.error("UI response error: %s", exc)
-
-        def _on_status_update(self, text: str):
-            try:
-                screen = getattr(self.root, "current_screen", None)
-                if not screen:
-                    return
-                bar = getattr(screen, "status_bar", None)
-                if bar:
-                    bar.update_status(text[:50])
-            except Exception:
-                pass
-
-        def on_stop(self):
-            system.is_running = False
-            ui_backend.shutdown()
-            logger.info("🛑 UI stopping")
-
-    app = EDIATHKivyApp(backend=ui_backend)
-    app.run()
-
+    web.shutdown()
     system.is_running = False
-    if init_done.wait(timeout=5) is False:
-        logger.warning("⚠ Backend did not shut down cleanly")
     logger.info("👋 System shutdown complete")
+
+
+# Alias for launcher.py compatibility
+main_interactive = main_web
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -2234,10 +2143,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="EDIATH AI System with Shared LLM")
     parser.add_argument(
         "--mode",
-        choices=["ui", "backend", "ui-only"],
+        choices=["ui", "backend"],
         default="ui",
-        help="Run mode: 'ui' (full), 'backend' (headless), 'ui-only' (no backend)",
+        help="Run mode: 'ui' (web UI), 'backend' (headless)",
     )
+
     args = parser.parse_args()
 
     print("=" * 70)
@@ -2249,12 +2159,10 @@ if __name__ == "__main__":
     print("=" * 70)
     print()
 
-    if args.mode == "ui-only":
-        run_ui_only()
-    elif args.mode == "backend":
+    if args.mode == "backend":
         try:
             asyncio.run(run_backend_only())
         except KeyboardInterrupt:
             print("\nInterrupted by user")
     else:
-        main_interactive()
+        main_web()

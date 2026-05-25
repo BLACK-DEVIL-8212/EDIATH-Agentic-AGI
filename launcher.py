@@ -5,11 +5,17 @@ EDIATH Launcher - Fixed with CUDA Support for NVIDIA 3050
 import asyncio
 import threading
 import logging
-import sys
 import signal
 import time
 import os
+import sys
+import io
 from pathlib import Path
+
+# Fix Unicode output on Windows consoles
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 # Logging setup
 logging.basicConfig(
@@ -233,12 +239,12 @@ def start_full_ui():
     try:
         # Ensure environment is set up
         setup_environment()
-        
-        from main import main_interactive
-        
+
+        from main import main_qt
+
         logger.info("🎨 Starting UI + backend...")
         logger.info(f"📁 Using model: {os.environ['EDIATH_MODEL_PATH']}")
-        main_interactive()
+        main_qt()
         
     except Exception as e:
         logger.error(f"💥 UI crashed: {e}", exc_info=True)
@@ -322,7 +328,8 @@ def check_dependencies():
     
     try:
         import tenacity
-        logger.info(f"✅ tenacity: {tenacity.__version__}")
+        ver = getattr(tenacity, "__version__", "unknown")
+        logger.info(f"✅ tenacity: {ver}")
     except ImportError:
         missing.append("tenacity")
     

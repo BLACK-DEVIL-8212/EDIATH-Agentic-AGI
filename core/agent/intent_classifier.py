@@ -16,6 +16,7 @@ from ..utils.logger import logger
 LLMEngine = None
 
 from ..brain.llm_engine import LLMEngine
+from ..ui.web_ui_server import WebUIServer
 
 
 # ------------------------
@@ -364,9 +365,9 @@ class IntentClassifier:
             # ------------------------
             # 🔥 CALL LLM (QUEUE SAFE)
             # ------------------------
-            result = await self.llm.queued_generate(prompt=prompt)
+            result = await self.llm.generate(prompt=prompt)
 
-            raw = str(result.get("response", "")).strip()
+            raw = str(result).strip()
 
             if not raw:
                 return Intent(IntentType.UNKNOWN, 0.3)

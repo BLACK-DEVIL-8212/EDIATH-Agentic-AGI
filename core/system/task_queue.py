@@ -223,7 +223,34 @@ class TaskQueue:
         self._running_tasks: Dict[str, Task] = {}
         self._completed_tasks: Dict[str, Task] = {}
         self._lock = asyncio.Lock()
-        self._not_empty = asyncio.Condition(self._lock)
+        self._not_empty: Optional[asyncio.Condition] = None  # lazily initialized in async context
+        self._max_queue_size = TaskQueueConfig.MAX_QUEUE_SIZE
+
+    @property
+    def _cond(self) -> asyncio.Condition:
+        """Lazily create Condition in the current event loop to avoid loop-crossing bugs."""
+        if self._not_empty is None:
+            self._not_empty = asyncio.Condition(self._lock)
+        try:
+            current = asyncio.get_event_loop()
+            if self._not_empty._loop is not None and self._not_empty._loop is not current:
+                self._not_empty = asyncio.Condition(self._lock)
+        except Exception:
+            self._not_empty = asyncio.Condition(self._lock)
+        return self._not_empty
+
+    def __init__(self, name: str = "default", queue_type: QueueType = QueueType.PRIORITY):
+        self.name = name
+        self.queue_type = queue_type
+        self._queue = []  # Heap for priority queue
+        self._fifo_queue = deque()  # FIFO queue
+        self._lifo_queue = []  # LIFO stack
+        self._rr_queues = {}  # Round-robin queues by priority
+        self._tasks: Dict[str, Task] = {}
+        self._running_tasks: Dict[str, Task] = {}
+        self._completed_tasks: Dict[str, Task] = {}
+        self._lock = asyncio.Lock()
+        self._not_empty: Optional[asyncio.Condition] = None
         self._max_queue_size = TaskQueueConfig.MAX_QUEUE_SIZE
         self._shutdown = False
         self._cleanup_task: Optional[asyncio.Task] = None
@@ -596,7 +623,7 @@ class TaskQueue:
                 # NOTIFY WAITERS (SAFE)
                 # -------------------------
                 try:
-                    self._not_empty.notify_all()
+                    self._cond.notify_all()
                 except RuntimeError:
                     pass
 
@@ -676,9 +703,9 @@ class TaskQueue:
                     # -------------------------
                     try:
                         if remaining is not None:
-                            await asyncio.wait_for(self._not_empty.wait(), remaining)
+                            await asyncio.wait_for(self._cond.wait(), remaining)
                         else:
-                            await self._not_empty.wait()
+                            await self._cond.wait()
                     except asyncio.TimeoutError:
                         return None
 
@@ -1833,7 +1860,8 @@ class TaskQueue:
             # CLEAR SIGNALS / EVENTS
             # -------------------------
             try:
-                self._not_empty.set()  # wake up any waiting get()
+                if self._not_empty is not None:
+                    self._not_empty.notify_all()
             except Exception:
                 pass
 

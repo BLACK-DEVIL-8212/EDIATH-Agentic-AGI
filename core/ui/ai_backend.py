@@ -195,18 +195,23 @@ class AIBackend:
                         loop.is_running()
                     )
 
-                except Exception:
+                except Exception as exc:
 
                     loop_running = False
                     logger.warning(
                         "connect_system: loop.is_running() raised %s",
-                        e,
+                        exc,
                     )
 
+                # NOTE: loop.is_running() returns False for loops used with
+                # run_until_complete (the keepalive pattern in main.py). This
+                # does NOT mean the loop is dead — it just means it's busy
+                # running our keepalive task. We always set _ready=True and
+                # let send_user_message detect actual dead loops directly.
                 if not loop_running:
-                    logger.warning(
-                        "connect_system: loop not running (will set _ready anyway "
-                        "and let send_user_message handle dead-loop detection)"
+                    logger.debug(
+                        "connect_system: loop not running yet (keepalive may "
+                        "not have started) — proceeding anyway"
                     )
 
                 # ========================================================
@@ -298,25 +303,14 @@ class AIBackend:
                 self.system = system
                 self.loop = loop
 
-                # Only mark ready if the loop is confirmed running.
-                # send_user_message will fall back gracefully if the loop is dead,
-                # so we don't need to set _ready here when loop isn't running.
-                if loop_running:
-                    self._ready = True
-                    self._processing = False
-                    self._shutdown = False
-                    self._backend_ready.set()
-                else:
-                    # Loop not running — still store system/loop reference
-                    # but don't set _ready. send_user_message will wait for
-                    # the event to be set, or detect the live loop directly.
-                    self._ready = False
-                    self._processing = False
-                    self._shutdown = False
-                    logger.info(
-                        "Backend loop not running — _ready=False, "
-                        "waiting for loop to start"
-                    )
+                # Always set _ready=True. The loop may not be "running" yet
+                # (it's used for run_until_complete, not run_forever), but
+                # having a valid system+loop reference is sufficient.
+                # send_user_message detects truly dead loops via RuntimeError.
+                self._ready = True
+                self._processing = False
+                self._shutdown = False
+                self._backend_ready.set()
 
                 self._last_processing_time = 0.0
                 self._last_request_time = 0.0
@@ -1063,14 +1057,6 @@ class AIBackend:
 
             if not backend_ready:
 
-                # DIAGNOSTIC: log system/loop state before any waits
-                logger.info(
-                    "DIAG pre-wait: _ready=%s, system=%s, loop=%s",
-                    backend_ready,
-                    "None" if system is None else "set",
-                    "None" if loop is None else "set",
-                )
-
                 # Backend isn’t ready — block briefly waiting for connect_system
                 # to finish rather than immediately falling back.
                 # This prevents startup messages from being lost to the fallback.
@@ -1085,41 +1071,24 @@ class AIBackend:
                 # Re-check after waiting
                 backend_ready = getattr(self, "_ready", False)
 
-                # DIAGNOSTIC: log system/loop state after wait
-                system_after = getattr(self, "system", None)
-                loop_after = getattr(self, "loop", None)
-                logger.info(
-                    "DIAG post-wait: _ready=%s, system=%s, loop=%s",
-                    backend_ready,
-                    "None" if system_after is None else "set",
-                    "None" if loop_after is None else "set",
-                )
+                # If _ready is still False but system+loop are present, the backend
+                # connected but _ready flag wasn't set — bypass fallback and try
+                # the normal path. This fixes the race where connect_system set
+                # system/loop but the keepalive loop wasn't yet running.
+                system_now = getattr(self, "system", None)
+                loop_now = getattr(self, "loop", None)
 
-                # If backend is now ready, proceed through normal path.
-                # If system+loop are present but _ready flag is False, the backend
-                # connected but the flag wasn’t set — try normal path anyway.
-                # Only fall back when system is genuinely missing.
-                system = getattr(self, "system", None)
-                loop = getattr(self, "loop", None)
-
-                if not backend_ready and system is not None and loop is not None:
-                    # Backend connected but _ready flag not set — bypass flag
-                    # and go through normal processing path directly.
-                    logger.info(
-                        "Backend connected but flag not set — bypassing fallback"
-                    )
+                if not backend_ready and system_now is not None and loop_now is not None:
+                    logger.info("DIAG: _ready=False but system+loop set — bypassing fallback")
                     backend_ready = True
 
                 if not backend_ready:
-                    # Backend is genuinely not ready — fall back.
-                    # Ensure _processing is cleared since _fallback_thread won’t do it.
+                    # Fall back if still not ready.
                     self._processing = False
-                    logger.warning(
-                        "Using fallback: _ready=%s, system=%s, loop=%s",
+                    logger.warning("Using fallback: _ready=%s, system=%s, loop=%s",
                         backend_ready,
-                        "None" if system is None else "set",
-                        "None" if loop is None else "set",
-                    )
+                        "None" if system_now is None else "set",
+                        "None" if loop_now is None else "set")
                     self._emit_status_safe("⏳ AI loading...")
                     try:
                         self._fallback_thread(text)
@@ -1129,8 +1098,9 @@ class AIBackend:
                     return
 
             # ============================================================
-            # SYSTEM CHECK
+            # SYSTEM CHECK (re-fetch to handle stale captured variables)
             # ============================================================
+            system = getattr(self, "system", None)
             if system is None:
 
                 logger.warning(
@@ -1144,8 +1114,9 @@ class AIBackend:
                 return
 
             # ============================================================
-            # LOOP VALIDATION
+            # LOOP VALIDATION (re-fetch for same reason)
             # ============================================================
+            loop = getattr(self, "loop", None)
             if loop is None:
 
                 logger.error(

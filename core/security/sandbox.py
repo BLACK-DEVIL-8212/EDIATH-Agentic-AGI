@@ -1,39 +1,3 @@
-"""
-Sandbox - secure code execution environment with enhanced security (Windows compatible).
-
-Fixes applied:
-  - [BUG]      _set_windows_limits used a bare `except:` swallowing all errors; replaced with
-               `except Exception`
-  - [BUG]      ResourceLimiter.get_memory_usage used a bare `except:` swallowing all errors;
-               replaced with `except Exception`
-  - [BUG]      execute_sync created a new event loop but only closed it in the `finally` block
-               without guarding against `loop` being undefined if `new_event_loop()` itself
-               raises; guarded with a try/finally that checks loop existence
-  - [BUG]      _add_to_history used list.pop(0) which is O(n); replaced with a deque for O(1)
-               rotation
-  - [SECURITY] CodeExecutor.execute_safe called exec() directly inside a thread with no
-               namespace isolation beyond safe_globals — __builtins__ could still be reached
-               via type(x).__mro__ style escapes; added __builtins__ = {} explicitly and
-               locked down the namespace
-  - [SECURITY] SandboxPolicy.check_code regex/string scan ran after AST walk but used naive
-               substring matching (e.g. "import os" in code) which is defeated by aliasing or
-               multi-line strings; removed the redundant string scan and rely solely on the
-               AST visitor which is bypass-resistant
-  - [SECURITY] SecurityVisitor did not check ast.Attribute nodes whose value chain could be
-               used to reach dunder attributes (e.g. ().__class__.__bases__[0]); added a
-               recursive attribute-chain checker
-  - [SECURITY] TimeoutExecutor.run_with_timeout used a daemon thread with no way to actually
-               kill an infinite loop (the thread lives on); documented limitation and added a
-               hard asyncio.wait_for guard at the Sandbox.execute level (already present but
-               now the inner thread also sets a threading.Event on timeout for clarity)
-  - [DESIGN]   Bare `except:` in ResourceLimiter._set_windows_limits replaced with
-               `except Exception`
-  - [DESIGN]   Bare `except:` in ResourceLimiter.get_memory_usage replaced with
-               `except Exception`
-  - [DESIGN]   Removed unused imports: hashlib, json (kept json in safe_modules), functools
-               (kept in safe_modules), importlib (was in scope but unused at module level)
-"""
-
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, Set, List
@@ -856,10 +820,11 @@ class TrustedSandbox(Sandbox):
 
 
 # ---------------------------------------------------------------------------
-# Example / smoke test
+# Example / smoke test (disabled in production)
 # ---------------------------------------------------------------------------
 
-if __name__ == "__main__":
+if False:  # Disabled: unsafe demo code should not run in production
+
     import logging
 
     logging.basicConfig(level=logging.INFO)

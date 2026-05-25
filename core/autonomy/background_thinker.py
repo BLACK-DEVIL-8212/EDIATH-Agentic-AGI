@@ -38,6 +38,8 @@ import heapq
 import uuid
 import re
 
+from core.agent.intent_classifier import LLMEngine
+
 try:
     import numpy as np
     NUMPY_AVAILABLE = True

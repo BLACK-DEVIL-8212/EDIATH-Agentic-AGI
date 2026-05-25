@@ -12257,6 +12257,7 @@ class SystemController:
             try:
 
                 self._healing = False
+                self._last_heal_time = time.monotonic()
 
             except Exception:
                 pass

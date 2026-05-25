@@ -217,11 +217,16 @@ class DataExtractor:
         self.nlp = None
         if self.enable_spacy:
             try:
+                # Loading spaCy model is optional in production.
+                # If the model isn't installed, disable NER silently (INFO/WARN spam).
                 self.nlp = spacy.load("en_core_web_sm")
                 logger.info("spaCy NER enabled")
             except Exception as e:
-                logger.warning(f"Failed to load spaCy model: {e}")
+                logger.info(
+                    "spaCy model not available (%s) — disabling NER.", e
+                )
                 self.enable_spacy = False
+
         
         # Statistics
         self.stats = {
@@ -703,7 +708,7 @@ class DataExtractor:
         has_header: bool = True,
         as_dicts: bool = True
     ) -> Union[List[List[str]], List[Dict[str, str]]]:
-        """Extract CSV data"""
+        """Extract from CSV text."""
         try:
             if as_dicts:
                 reader = csv.DictReader(io.StringIO(text), delimiter=delimiter)

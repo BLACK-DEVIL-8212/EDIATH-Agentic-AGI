@@ -533,8 +533,12 @@ class DecisionEngine:
                     try:
                         await asyncio.sleep(15)
                     except asyncio.CancelledError:
-                        break
-
+                        try:
+                            break
+                        except Exception as e:
+                            self.logger.debug(f"Error occurred while breaking the loop: {e}")
+                    except Exception:
+                        self.logger.debug("Error occurred in the control loop")
         finally:
             # -------------------------
             # CLEAN EXIT
