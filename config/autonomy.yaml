@@ -1,0 +1,1001 @@
+# Autonomy Configuration
+# Version: 2.0.0
+# Last Updated: 2026-04-22
+
+# =========================
+# GLOBAL AUTONOMY SETTINGS
+# =========================
+
+autonomy:
+  # Master enable/disable
+  enabled: true
+  
+  # Autonomy level (0-5)
+  # 0: Manual - No autonomous actions
+  # 1: Assisted - Suggest actions, require confirmation
+  # 2: Supervised - Execute approved actions, report results
+  # 3: Semi-autonomous - Execute with safety checks
+  # 4: Autonomous - Execute with minimal oversight
+  # 5: Full autonomy - Complete independent operation
+  autonomy_level: 3
+  
+  # Operation mode
+  mode: "adaptive"  # Options: conservative, balanced, adaptive, aggressive
+  
+  # Safety level (0-10)
+  safety_level: 7
+  
+  # Human-in-the-loop
+  human_in_loop:
+    enabled: true
+    confirmation_timeout: 60  # Seconds
+    escalation_threshold: 0.8  # Confidence threshold for escalation
+    emergency_stop: true  # Allow emergency stop
+    
+  # Learning mode
+  learning:
+    enabled: true
+    learning_rate: 0.1
+    experience_memory: 10000  # Number of experiences to remember
+    forget_rate: 0.01  # Rate to forget old experiences
+
+# =========================
+# BACKGROUND THINKER
+# =========================
+
+background_thinker:
+  # Master enable
+  enabled: true
+  
+  # Thinking configuration
+  thinking_interval: 60  # Seconds between thinking cycles
+  max_parallel_thoughts: 5  # Maximum concurrent thought processes
+  thought_depth: "medium"  # Options: shallow, light, medium, deep, profound
+  
+  # Depth configurations
+  depth_configs:
+    shallow:
+      max_iterations: 3
+      time_limit_seconds: 5
+      resource_limit: 0.1  # CPU percentage
+      memory_limit_mb: 50
+    
+    light:
+      max_iterations: 5
+      time_limit_seconds: 10
+      resource_limit: 0.2
+      memory_limit_mb: 100
+    
+    medium:
+      max_iterations: 10
+      time_limit_seconds: 30
+      resource_limit: 0.3
+      memory_limit_mb: 200
+    
+    deep:
+      max_iterations: 20
+      time_limit_seconds: 60
+      resource_limit: 0.5
+      memory_limit_mb: 500
+    
+    profound:
+      max_iterations: 50
+      time_limit_seconds: 300
+      resource_limit: 0.8
+      memory_limit_mb: 1000
+  
+  # Thought types
+  thought_types:
+    enabled:
+      - "reflective"  # Review past actions
+      - "predictive"  # Predict future outcomes
+      - "creative"    # Generate new ideas
+      - "analytical"  # Analyze data patterns
+      - "strategic"   # Plan long-term strategies
+    
+    weights:
+      reflective: 0.2
+      predictive: 0.3
+      creative: 0.15
+      analytical: 0.2
+      strategic: 0.15
+  
+  # Thought prioritization
+  prioritization:
+    algorithm: "weighted_relevance"  # Options: fifo, priority, weighted_relevance, deadline
+    importance_threshold: 0.3
+    urgency_threshold: 0.5
+    
+    weights:
+      importance: 0.4
+      urgency: 0.3
+      resource_cost: 0.2
+      expected_value: 0.1
+  
+  # Thought memory
+  memory:
+    short_term_size: 100  # Recent thoughts
+    long_term_size: 10000  # Archived thoughts
+    thought_expiry_days: 30  # Days until thought expires
+    importance_required_for_long_term: 0.7
+  
+  # Thought chaining
+  chaining:
+    enabled: true
+    max_chain_length: 5
+    chain_timeout_seconds: 60
+    allow_branching: true
+  
+  # Metacognition
+  metacognition:
+    enabled: true
+    self_evaluation: true
+    thought_quality_estimation: true
+    bias_detection: true
+  
+  # Resource management
+  resources:
+    cpu_limit_percent: 30
+    memory_limit_mb: 500
+    disk_limit_mb: 1000
+    network_limit_mbps: 10
+    
+    throttling:
+      enabled: true
+      threshold_percent: 80
+      reduction_factor: 0.5
+  
+  # Thought logging
+  logging:
+    enabled: true
+    log_level: "info"  # Options: debug, info, warning, error
+    save_thoughts: true
+    max_log_size_mb: 100
+
+# =========================
+# CURIOSITY ENGINE
+# =========================
+
+curiosity_engine:
+  # Master enable
+  enabled: true
+  
+  # Curiosity parameters
+  curiosity_threshold: 0.5  # Minimum novelty to trigger exploration
+  exploration_ratio: 0.1  # Percentage of time spent exploring vs exploiting
+  novelty_weight: 0.7  # Weight of novelty in curiosity calculation
+  surprise_weight: 0.3  # Weight of surprise in curiosity calculation
+  
+  # Exploration strategies
+  exploration_strategies:
+    - name: "random"  # Random exploration
+      weight: 0.2
+    - name: "novelty_driven"  # Explore novel areas
+      weight: 0.4
+    - name: "information_gain"  # Maximize information gain
+      weight: 0.3
+    - name: "uncertainty_sampling"  # Explore uncertain areas
+      weight: 0.1
+  
+  # Curiosity types
+  curiosity_types:
+    epistemic:  # Knowledge-seeking curiosity
+      enabled: true
+      weight: 0.5
+    
+    perceptual:  # Sensory-seeking curiosity
+      enabled: true
+      weight: 0.2
+    
+    social:  # Social interaction curiosity
+      enabled: true
+      weight: 0.1
+    
+    mastery:  # Skill improvement curiosity
+      enabled: true
+      weight: 0.2
+  
+  # Novelty detection
+  novelty_detection:
+    algorithm: "isolation_forest"  # Options: distance, density, isolation_forest, autoencoder
+    sensitivity: 0.3
+    update_interval: 100  # Updates after N observations
+    
+    parameters:
+      contamination: 0.1
+      n_estimators: 100
+      max_samples: 256
+  
+  # Intrinsic motivation
+  intrinsic_motivation:
+    enabled: true
+    motivation_decay: 0.01  # Decay rate for repeated experiences
+    curiosity_boost: 0.2  # Boost for unexplored areas
+    competence_threshold: 0.8  # Threshold for mastery feeling
+  
+  # Interest modeling
+  interest_modeling:
+    enabled: true
+    interest_decay: 0.05  # Decay rate for interests
+    interest_threshold: 0.3  # Minimum interest to act
+    max_interests: 20  # Maximum concurrent interests
+  
+  # Exploration boundaries
+  boundaries:
+    safety_constrained: true
+    max_exploration_depth: 5
+    max_exploration_time_seconds: 300
+    allowed_domains:
+      - "knowledge"
+      - "skills"
+      - "environment"
+      - "social"
+    
+    restricted_domains:
+      - "security"
+      - "privacy"
+      - "safety_critical"
+  
+  # Learning from exploration
+  learning:
+    update_value_function: true
+    update_policy: true
+    exploration_reward_scaling: 0.1
+    min_experiences_for_learning: 10
+  
+  # Curiosity logging
+  logging:
+    enabled: true
+    log_discoveries: true
+    log_novelty_scores: true
+    discovery_threshold: 0.8
+
+# =========================
+# GOAL MANAGEMENT
+# =========================
+
+goal_manager:
+  # Master enable
+  enabled: true
+  
+  # Goal limits
+  max_active_goals: 10
+  max_pending_goals: 50
+  max_completed_goals: 1000
+  goal_priority_algorithm: "weighted_sum"  # Options: fifo, priority, weighted_sum, deadline
+  
+  # Priority calculation
+  priority_weights:
+    urgency: 0.35
+    importance: 0.35
+    effort: 0.15
+    dependencies: 0.15
+  
+  # Goal types
+  goal_types:
+    short_term:  # Hours to days
+      max_duration_hours: 72
+      priority_boost: 1.2
+    
+    medium_term:  # Days to weeks
+      max_duration_days: 14
+      priority_boost: 1.0
+    
+    long_term:  # Weeks to months
+      max_duration_days: 90
+      priority_boost: 0.8
+    
+    strategic:  # Months to years
+      max_duration_days: 365
+      priority_boost: 0.6
+  
+  # Goal completion
+  goal_completion_threshold: 0.95  # Threshold to consider goal complete
+  completion_verification: true  # Verify completion before marking done
+  partial_completion_allowed: true
+  
+  # Goal decomposition
+  decomposition:
+    enabled: true
+    max_subgoals: 10
+    decomposition_depth: 3
+    decomposition_strategy: "hierarchical"  # Options: flat, hierarchical, recursive
+  
+  # Goal dependencies
+  dependencies:
+    enabled: true
+    auto_resolve: true
+    dependency_check_interval: 10  # Seconds
+    circular_dependency_prevention: true
+  
+  # Goal scheduling
+  scheduling:
+    algorithm: "priority_queue"  # Options: fifo, priority, deadline, edf
+    preemptive: true
+    time_slice_seconds: 30
+    deadline_miss_handling: "reprioritize"  # Options: ignore, reprioritize, escalate
+  
+  # Goal tracking
+  tracking:
+    progress_update_interval: 5  # Seconds
+    metrics_tracked:
+      - "progress_percentage"
+      - "time_elapsed"
+      - "effort_expended"
+      - "blockers_encountered"
+    
+    anomaly_detection:
+      enabled: true
+      stall_threshold_seconds: 300
+      regression_threshold: 0.2
+  
+  # Goal adaptation
+  adaptation:
+    enabled: true
+    adaptation_interval: 60  # Seconds
+    replan_on_failure: true
+    dynamic_priority_adjustment: true
+    
+    triggers:
+      - "significant_progress"
+      - "major_obstacle"
+      - "resource_change"
+      - "external_event"
+  
+  # Goal conflict resolution
+  conflict_resolution:
+    algorithm: "weighted_vote"  # Options: priority, weighted_vote, negotiation
+    negotiation_timeout: 30  # Seconds
+    allow_goal_suspension: true
+    conflict_logging: true
+  
+  # Goal persistence
+  persistence:
+    save_interval: 60  # Seconds
+    backup_on_shutdown: true
+    retention_days: 90
+    export_on_completion: true
+
+# =========================
+# SELF-IMPROVEMENT
+# =========================
+
+self_improvement:
+  # Master enable
+  enabled: true
+  
+  # Improvement schedule
+  improvement_interval: 3600  # Seconds between improvement cycles (1 hour)
+  performance_target: 0.9  # Target performance score (0-1)
+  adaptation_rate: 0.1  # Rate of adaptation (0-1)
+  
+  # Improvement areas
+  improvement_areas:
+    - name: "speed"
+      weight: 0.3
+      target_improvement: 0.2
+      measurement: "execution_time"
+    
+    - name: "accuracy"
+      weight: 0.3
+      target_improvement: 0.15
+      measurement: "error_rate"
+    
+    - name: "efficiency"
+      weight: 0.2
+      target_improvement: 0.25
+      measurement: "resource_usage"
+    
+    - name: "robustness"
+      weight: 0.2
+      target_improvement: 0.1
+      measurement: "failure_rate"
+  
+  # Learning strategies
+  learning_strategies:
+    reinforcement_learning:
+      enabled: true
+      gamma: 0.99  # Discount factor
+      alpha: 0.1  # Learning rate
+      epsilon: 0.1  # Exploration rate
+    
+    supervised_learning:
+      enabled: true
+      model_retraining_interval: 86400  # 24 hours
+      min_samples_for_training: 100
+    
+    unsupervised_learning:
+      enabled: true
+      clustering_k: 10
+      anomaly_threshold: 0.95
+    
+    meta_learning:
+      enabled: false
+      learn_to_learn: true
+      meta_updates_interval: 604800  # 7 days
+  
+  # Performance evaluation
+  evaluation:
+    metrics:
+      - "throughput"
+      - "latency"
+      - "accuracy"
+      - "resource_efficiency"
+      - "user_satisfaction"
+    
+    evaluation_interval: 300  # 5 minutes
+    baseline_period_days: 7
+    comparison_window: 100  # Number of samples
+    
+    statistical_tests:
+      enabled: true
+      confidence_level: 0.95
+      min_sample_size: 30
+  
+  # Optimization techniques
+  optimization:
+    hyperparameter_tuning:
+      enabled: true
+      optimization_algorithm: "bayesian"  # Options: grid, random, bayesian, genetic
+      max_trials: 100
+      cross_validation_folds: 5
+    
+    architecture_search:
+      enabled: false
+      search_space: "layer_sizes"
+      max_models: 50
+    
+    pruning:
+      enabled: true
+      prune_interval: 86400  # 24 hours
+      importance_threshold: 0.05
+      max_prune_percentage: 0.3
+  
+  # Knowledge refinement
+  knowledge_refinement:
+    enabled: true
+    refinement_interval: 3600  # 1 hour
+    contradiction_resolution: "confidence_based"
+    knowledge_consolidation: true
+    prune_obsolete: true
+    obsolescence_threshold_days: 30
+  
+  # Skill acquisition
+  skill_acquisition:
+    enabled: true
+    skill_discovery: true
+    skill_reuse_threshold: 0.7
+    max_skills: 1000
+    skill_composition_allowed: true
+    
+    acquisition_strategies:
+      - "imitation_learning"
+      - "demonstration"
+      - "trial_and_error"
+      - "instruction"
+  
+  # Failure analysis
+  failure_analysis:
+    enabled: true
+    root_cause_analysis: true
+    pattern_detection: true
+    failure_memory_size: 1000
+    auto_correction: true
+    
+    correction_strategies:
+      - "retry_with_adjustment"
+      - "alternative_approach"
+      - "escalate_to_human"
+      - "skip_and_learn"
+  
+  # Improvement logging
+  logging:
+    enabled: true
+    log_improvements: true
+    log_performance_delta: true
+    save_checkpoints: true
+    checkpoint_interval: 3600  # 1 hour
+
+# =========================
+# DECISION MAKING
+# =========================
+
+decision_making:
+  # Master enable
+  enabled: true
+  
+  # Decision parameters
+  decision_timeout: 30  # Seconds
+  confidence_threshold: 0.6  # Minimum confidence to act
+  strategy: "weighted_vote"  # Options: unanimous, majority, weighted_vote, consensus, random
+  
+  # Decision strategies
+  strategies_config:
+    unanimous:
+      required_agreement: 1.0
+      timeout_fallback: "majority"
+    
+    majority:
+      required_agreement: 0.5
+      tie_breaker: "random"
+    
+    weighted_vote:
+      weights_based_on: "expertise"  # Options: expertise, confidence, historical_accuracy
+      min_participation: 0.3
+    
+    consensus:
+      algorithm: "raft"  # Options: raft, paxos, pbft
+      round_timeout: 5
+      max_rounds: 10
+    
+    random:
+      seed: null  # Use random seed
+      exploration_weight: 0.2
+  
+  # Decision types
+  decision_types:
+    immediate:  # Milliseconds to seconds
+      timeout_ms: 100
+      require_confidence: 0.8
+    
+    tactical:  # Seconds to minutes
+      timeout_seconds: 10
+      require_confidence: 0.7
+    
+    strategic:  # Minutes to hours
+      timeout_seconds: 300
+      require_confidence: 0.6
+    
+    critical:  # Safety-critical decisions
+      timeout_seconds: 1
+      require_confidence: 0.95
+      require_human_approval: true
+  
+  # Decision factors
+  factors:
+    - name: "risk"
+      weight: 0.3
+      calculation: "expected_risk"
+    
+    - name: "reward"
+      weight: 0.3
+      calculation: "expected_value"
+    
+    - name: "certainty"
+      weight: 0.2
+      calculation: "information_quality"
+    
+    - name: "time_criticality"
+      weight: 0.1
+      calculation: "deadline_proximity"
+    
+    - name: "resource_cost"
+      weight: 0.1
+      calculation: "resource_estimation"
+  
+  # Risk assessment
+  risk_assessment:
+    enabled: true
+    risk_tolerance: 0.3  # 0-1 (0=cautious, 1=risk-seeking)
+    risk_calculation: "monte_carlo"  # Options: deterministic, probabilistic, monte_carlo
+    monte_carlo_samples: 1000
+    
+    risk_categories:
+      - "safety"
+      - "security"
+      - "financial"
+      - "reputational"
+      - "operational"
+  
+  # Uncertainty handling
+  uncertainty_handling:
+    method: "probabilistic"  # Options: deterministic, probabilistic, fuzzy, ensemble
+    confidence_interval: 0.95
+    uncertainty_threshold: 0.3  # Threshold for additional analysis
+    query_human_on_high_uncertainty: true
+  
+  # Multi-criteria decision analysis (MCDA)
+  mcda:
+    enabled: true
+    method: "topsis"  # Options: ahp, topsis, electre, promethee
+    normalize_scores: true
+    sensitivity_analysis: true
+  
+  # Decision history
+  history:
+    max_decisions: 10000
+    retention_days: 90
+    enable_learning: true
+    review_interval: 3600  # 1 hour
+    
+    metrics:
+      - "decision_quality"
+      - "outcome_success"
+      - "decision_time"
+      - "confidence_calibration"
+  
+  # Explainability
+  explainability:
+    enabled: true
+    explanation_detail: "medium"  # Options: minimal, medium, detailed
+    include_factors: true
+    include_alternatives: true
+    include_uncertainty: true
+    generate_natural_language: true
+
+# =========================
+# TASK EXECUTION
+# =========================
+
+task_execution:
+  # Master enable
+  enabled: true
+  
+  # Execution limits
+  max_concurrent_tasks: 5
+  task_timeout: 300  # Seconds
+  retry_attempts: 3
+  retry_backoff: 2.0  # Exponential backoff multiplier
+  
+  # Task types
+  task_types:
+    atomic:
+      max_duration_seconds: 30
+      preemptible: true
+      checkpointable: false
+    
+    composite:
+      max_duration_seconds: 600
+      preemptible: true
+      checkpointable: true
+    
+    batch:
+      max_duration_seconds: 3600
+      preemptible: false
+      checkpointable: true
+    
+    critical:
+      max_duration_seconds: 60
+      preemptible: false
+      checkpointable: true
+      requires_confirmation: true
+  
+  # Task queuing
+  queuing:
+    algorithm: "priority_queue"  # Options: fifo, priority, fair, deadline
+    max_queue_size: 1000
+    queue_persistence: true
+    dead_letter_queue: true
+    
+    priority_levels:
+      - name: "critical"
+        level: 0
+        preemptive: true
+      
+      - name: "high"
+        level: 1
+        preemptive: true
+      
+      - name: "normal"
+        level: 2
+        preemptive: false
+      
+      - name: "low"
+        level: 3
+        preemptive: false
+      
+      - name: "background"
+        level: 4
+        preemptive: false
+  
+  # Task scheduling
+  scheduling:
+    algorithm: "round_robin"  # Options: round_robin, weighted_fair, deadline_aware
+    time_slice_ms: 100
+    load_balancing: true
+    affinity: "least_loaded"  # Options: none, least_loaded, most_loaded, random
+    
+    deadline_aware:
+      check_interval: 5  # Seconds
+      urgency_threshold: 0.8
+      promote_on_urgency: true
+  
+  # Task dependencies
+  dependencies:
+    resolution: "topological"  # Options: topological, greedy, heuristic
+    cycle_detection: true
+    parallel_where_possible: true
+    dependency_timeout: 60
+  
+  # Resource allocation
+  resources:
+    cpu_share: 0.2  # Percentage of CPU per task
+    memory_limit_mb: 500
+    disk_io_limit_mbps: 10
+    network_limit_mbps: 5
+    
+    allocation_strategy: "fair_share"  # Options: fair_share, weighted, guaranteed
+    overcommit_allowed: false
+    resource_monitoring: true
+  
+  # Execution monitoring
+  monitoring:
+    enabled: true
+    metrics_collection_interval: 1  # Second
+    metrics:
+      - "progress"
+      - "cpu_usage"
+      - "memory_usage"
+      - "io_wait"
+      - "network_io"
+    
+    anomaly_detection:
+      enabled: true
+      stall_threshold_seconds: 30
+      memory_leak_threshold_mb: 100
+      cpu_spike_threshold_percent: 90
+  
+  # Error handling
+  error_handling:
+    strategies:
+      - "retry"
+      - "fallback"
+      - "degrade"
+      - "abort"
+      - "escalate"
+    
+    retry_config:
+      max_retries: 3
+      initial_delay_seconds: 1
+      max_delay_seconds: 60
+      retry_on_exceptions:
+        - "NetworkError"
+        - "TimeoutError"
+        - "ResourceUnavailable"
+    
+    fallback_config:
+      alternative_tasks: true
+      degraded_mode_allowed: true
+      fallback_timeout_seconds: 10
+  
+  # Checkpointing
+  checkpointing:
+    enabled: true
+    checkpoint_interval: 30  # Seconds
+    max_checkpoints: 10
+    checkpoint_storage: "disk"  # Options: memory, disk, database
+    auto_recovery: true
+  
+  # Task logging
+  logging:
+    enabled: true
+    log_level: "info"
+    log_execution_details: true
+    log_performance_metrics: true
+    max_log_lines: 10000
+
+# =========================
+# AUTONOMOUS LOOP
+# =========================
+
+autonomous_loop:
+  # Master enable
+  enabled: true
+  
+  # Loop timing
+  loop_interval: 1.0  # Seconds
+  max_loop_duration: 5.0  # Maximum seconds per loop
+  sleep_on_idle: 0.1  # Sleep when idle
+  
+  # Loop phases
+  phases:
+    - name: "sense"
+      order: 1
+      timeout_seconds: 0.5
+      required: true
+    
+    - name: "perceive"
+      order: 2
+      timeout_seconds: 0.5
+      required: true
+    
+    - name: "think"
+      order: 3
+      timeout_seconds: 2.0
+      required: true
+    
+    - name: "decide"
+      order: 4
+      timeout_seconds: 1.0
+      required: true
+    
+    - name: "act"
+      order: 5
+      timeout_seconds: 1.0
+      required: true
+    
+    - name: "learn"
+      order: 6
+      timeout_seconds: 0.5
+      required: false
+  
+  # Loop control
+  control:
+    max_iterations: 1000000  # Max iterations before restart
+    break_on_idle: true
+    idle_threshold_seconds: 60
+    adaptive_interval: true  # Adjust interval based on workload
+    
+    heartbeat:
+      enabled: true
+      interval_seconds: 30
+      heartbeat_callback: "on_heartbeat"
+  
+  # State management
+  state:
+    persistence: true
+    save_interval: 10  # Seconds
+    state_size_limit_mb: 100
+    snapshot_on_shutdown: true
+  
+  # Loop monitoring
+  monitoring:
+    enabled: true
+    measure_phase_timing: true
+    detect_hung_loops: true
+    hung_threshold_seconds: 10
+    loop_count_metrics: true
+  
+  # Emergency handling
+  emergency:
+    enabled: true
+    detection_interval: 1  # Second
+    emergency_actions:
+      - "pause_loop"
+      - "save_state"
+      - "notify_admin"
+    
+    recovery_strategy: "restart"  # Options: restart, resume, rollback
+    max_emergencies_per_hour: 10
+
+# =========================
+# INTEGRATION & COMMUNICATION
+# =========================
+
+integration:
+  # Internal communication
+  internal:
+    message_bus: "redis"  # Options: memory, redis, rabbitmq, kafka
+    max_message_size_mb: 10
+    message_retention_seconds: 3600
+    
+    channels:
+      - "thoughts"
+      - "goals"
+      - "decisions"
+      - "tasks"
+      - "events"
+  
+  # External APIs
+  external_apis:
+    timeout_seconds: 30
+    max_retries: 3
+    rate_limit_per_minute: 60
+    
+    endpoints:
+      llm_api:
+        url: "http://localhost:8000"
+        timeout: 60
+      
+      memory_api:
+        url: "http://localhost:8001"
+        timeout: 30
+      
+      automation_api:
+        url: "http://localhost:8002"
+        timeout: 60
+  
+  # Webhook notifications
+  webhooks:
+    enabled: true
+    events:
+      - "goal_completed"
+      - "decision_made"
+      - "task_failed"
+      - "emergency_triggered"
+    
+    retry_config:
+      max_attempts: 5
+      initial_delay_ms: 100
+      max_delay_ms: 10000
+
+# =========================
+# MONITORING & METRICS
+# =========================
+
+monitoring:
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval: 10  # Seconds
+    export_interval: 60  # Seconds
+    
+    metrics_to_collect:
+      - "autonomy_level"
+      - "thinking_rate"
+      - "curiosity_score"
+      - "goal_completion_rate"
+      - "decision_accuracy"
+      - "task_throughput"
+      - "resource_utilization"
+      - "error_rate"
+  
+  # Performance tracking
+  performance:
+    track_over_time: true
+    retention_days: 30
+    aggregation_intervals:
+      - "1m"
+      - "5m"
+      - "1h"
+      - "1d"
+    
+    alerts:
+      enabled: true
+      thresholds:
+        high_error_rate: 0.1
+        low_performance: 0.5
+        resource_exhaustion: 0.9
+  
+  # Logging
+  logging:
+    level: "info"  # Options: debug, info, warning, error, critical
+    log_autonomy_events: true
+    log_performance: true
+    log_errors: true
+    
+    outputs:
+      - "console"
+      - "file"
+      - "database"
+    
+    file_config:
+      path: "logs/autonomy.log"
+      max_size_mb: 100
+      backup_count: 10
+
+# =========================
+# DEBUG & DEVELOPMENT
+# =========================
+
+debug:
+  # Debug mode
+  enabled: false
+  
+  # Verbose logging
+  verbose: false
+  
+  # Step-by-step execution
+  step_mode: false
+  
+  # Decision visualization
+  visualize_decisions: false
+  
+  # Thought tracing
+  trace_thoughts: false
+  
+  # Goal tracking visualization
+  visualize_goals: false
+  
+  # Performance profiling
+  profiling:
+    enabled: false
+    profile_interval: 60
+    save_flamegraphs: true
+  
+  # Simulated environment
+  simulation:
+    enabled: false
+    speed_factor: 1.0
+    deterministic: true
+    random_seed: 42

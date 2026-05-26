@@ -1,0 +1,1096 @@
+# EDIATH System Configuration
+# Version: 2.0.0
+# Last Updated: 2026-04-22
+
+# =========================
+# SYSTEM-LEVEL SETTINGS
+# =========================
+
+system:
+  # Basic information
+  name: "EDIATH"
+  version: "2.0.0"
+  environment: "production"  # Options: development, staging, production, testing
+  debug: false
+  
+  # Instance identification
+  instance_id: null  # Auto-generated if null
+  instance_name: "ediath-main"
+  deployment_id: null
+  
+  # Timezone
+  timezone: "UTC"
+  
+  # Startup behavior
+  startup:
+    auto_start_components: true
+    startup_timeout_seconds: 60
+    health_check_on_startup: true
+    warm_up_components: true
+    warm_up_duration_seconds: 5
+  
+  # Shutdown behavior
+  shutdown:
+    graceful_shutdown: true
+    shutdown_timeout_seconds: 30
+    complete_running_tasks: true
+    drain_queues: true
+    save_state_on_shutdown: true
+  
+  # System mode
+  mode: "standalone"  # Options: standalone, master, worker, hybrid
+  
+  # Maintenance mode
+  maintenance:
+    enabled: false
+    mode: "scheduled"  # Options: scheduled, manual, automatic
+    schedule: "0 2 * * 0"  # Sunday at 2 AM
+    duration_hours: 4
+    notify_users: true
+    maintenance_message: "System undergoing scheduled maintenance"
+
+# =========================
+# APPLICATION PATHS
+# =========================
+
+paths:
+  # Base directories
+  base_dir: "."
+  logs: "./logs"
+  cache: "./cache"
+  data: "./data"
+  models: "./models"
+  
+  # Additional directories
+  config: "./config"
+  temp: "./temp"
+  backups: "./backups"
+  plugins: "./plugins"
+  assets: "./assets"
+  
+  # EDIATH specific directories
+  workspace: "./workspace"
+  generated_projects: "./generated_projects"
+  research: "./research"
+  screenshots: "./screenshots"
+  recordings: "./recordings"
+  audio_outputs: "./audio_outputs"
+  downloads: "./downloads"
+  
+  # Security directories
+  security: "./security"
+  certificates: "./security/certs"
+  keys: "./security/keys"
+  
+  # Data subdirectories
+  memory: "./data/memory"
+  metrics: "./data/metrics"
+  task_queue: "./data/task_queue"
+  knowledge_base: "./data/knowledge_base"
+  workflow_checkpoints: "./data/workflow_checkpoints"
+  
+  # Permissions
+  permissions:
+    require_writable: true
+    default_permissions: 0o755
+    file_permissions: 0o644
+    dir_permissions: 0o755
+    umask: 0o022
+  
+  # Path validation
+  validation:
+    check_existence: true
+    create_if_missing: true
+    validate_permissions: true
+    follow_symlinks: false
+
+# =========================
+# LOGGING CONFIGURATION
+# =========================
+
+logging:
+  # Master enable
+  enabled: true
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Extended formats
+  formats:
+    console: "%(asctime)s - %(levelname)s - %(message)s"
+    file: "%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
+    json: '{"timestamp": "%(asctime)s", "logger": "%(name)s", "level": "%(levelname)s", "message": "%(message)s"}'
+    detailed: "%(asctime)s - %(name)s - %(levelname)s - %(pathname)s:%(lineno)d - %(funcName)s - %(message)s"
+  
+  # File rotation
+  max_file_size: 10485760  # 10 MB
+  backup_count: 10
+  compression: true
+  rotation_when: "midnight"  # Options: midnight, day, hour, minute
+  
+  # Output handlers
+  handlers:
+    console:
+      enabled: true
+      level: "INFO"
+      format: "console"
+      colorized: true
+    
+    file:
+      enabled: true
+      level: "DEBUG"
+      format: "file"
+      path: "logs/ediath.log"
+    
+    error_file:
+      enabled: true
+      level: "ERROR"
+      format: "detailed"
+      path: "logs/errors.log"
+    
+    json_file:
+      enabled: false
+      level: "INFO"
+      format: "json"
+      path: "logs/ediath.json"
+    
+    syslog:
+      enabled: false
+      level: "INFO"
+      host: "localhost"
+      port: 514
+      protocol: "udp"  # Options: udp, tcp
+    
+    elasticsearch:
+      enabled: false
+      level: "INFO"
+      hosts: ["localhost:9200"]
+      index: "ediath-logs"
+  
+  # Component-specific logging
+  components:
+    orchestrator:
+      level: "INFO"
+      separate_file: true
+      file_path: "logs/orchestrator.log"
+    
+    llm:
+      level: "INFO"
+      separate_file: true
+      file_path: "logs/llm.log"
+    
+    memory:
+      level: "WARNING"
+      separate_file: true
+      file_path: "logs/memory.log"
+    
+    automation:
+      level: "INFO"
+      separate_file: true
+      file_path: "logs/automation.log"
+    
+    security:
+      level: "INFO"
+      separate_file: true
+      file_path: "logs/security.log"
+    
+    api:
+      level: "INFO"
+      separate_file: true
+      file_path: "logs/api.log"
+  
+  # Log retention
+  retention:
+    enabled: true
+    max_days: 30
+    max_size_gb: 10
+    delete_old: true
+    archive: false
+    archive_path: "logs/archive"
+  
+  # Performance logging
+  performance:
+    enabled: true
+    log_interval_seconds: 60
+    log_cpu_usage: true
+    log_memory_usage: true
+    log_disk_usage: true
+    log_network_usage: true
+  
+  # Audit logging
+  audit:
+    enabled: true
+    separate_file: true
+    file_path: "logs/audit.log"
+    log_all_actions: true
+    log_sensitive_operations: true
+    redact_sensitive_data: true
+
+# =========================
+# PERFORMANCE SETTINGS
+# =========================
+
+performance:
+  # Worker configuration
+  max_workers: 4
+  min_workers: 1
+  worker_type: "thread"  # Options: thread, process, async
+  
+  # Thread pool
+  thread_pool:
+    max_workers: 10
+    thread_name_prefix: "EDIATHWorker"
+    daemon_threads: false
+  
+  # Process pool
+  process_pool:
+    max_workers: 4
+    maxtasks_per_child: 1000
+  
+  # Batch processing
+  batch_size: 32
+  max_batch_size: 256
+  batch_timeout_ms: 100
+  
+  # Caching
+  cache_enabled: true
+  cache_ttl: 3600  # 1 hour
+  cache_backend: "memory"  # Options: memory, redis, memcached
+  cache_max_size: 1000
+  cache_serialization: "json"  # Options: json, pickle, msgpack
+  
+  # Redis cache (if enabled)
+  redis_cache:
+    host: "localhost"
+    port: 6379
+    db: 0
+    password: null
+    ssl: false
+  
+  # Connection pooling
+  connection_pooling:
+    enabled: true
+    max_size: 20
+    min_size: 5
+    max_idle_time_seconds: 300
+    connection_timeout_seconds: 10
+  
+  # Asynchronous processing
+  async_processing:
+    enabled: true
+    max_concurrent_tasks: 50
+    task_queue_size: 1000
+    task_timeout_seconds: 30
+  
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    algorithm: "token_bucket"  # Options: token_bucket, leaky_bucket, sliding_window
+    default_rate: 100  # requests per second
+    default_burst: 200
+  
+  # Compression
+  compression:
+    enabled: true
+    algorithm: "lz4"  # Options: gzip, lz4, zstd, snappy
+    level: 1  # 1-9 (fast to best)
+    min_size_bytes: 1024
+  
+  # Load balancing
+  load_balancing:
+    enabled: true
+    algorithm: "round_robin"  # Options: round_robin, least_connections, random, weighted
+    health_check_interval_seconds: 10
+    failover_enabled: true
+
+# =========================
+# MEMORY MANAGEMENT
+# =========================
+
+memory:
+  # Limits
+  max_memory_mb: 2048
+  min_free_memory_mb: 256
+  memory_limit_enforced: true
+  
+  # Garbage collection
+  gc_enabled: true
+  gc_interval: 300  # 5 minutes
+  gc_threshold: 0.8  # GC when usage exceeds 80%
+  gc_aggressive: false
+  
+  # Memory optimization
+  optimization:
+    enable_compression: true
+    enable_deduplication: true
+    use_shared_memory: false
+    memory_mapping: false
+    
+    compression_algorithm: "zlib"
+    compression_level: 6
+  
+  # Memory pools
+  pools:
+    enabled: true
+    pool_sizes:
+      small: 1024  # 1 KB
+      medium: 1048576  # 1 MB
+      large: 10485760  # 10 MB
+    
+    preallocate_pools: true
+    reuse_memory: true
+  
+  # Memory profiling
+  profiling:
+    enabled: false
+    track_allocations: true
+    track_fragmentation: true
+    profile_interval_seconds: 60
+    save_profile: true
+    profile_dir: "profiles/memory"
+  
+  # Swap management
+  swap:
+    enabled: true
+    swap_file: "data/swapfile"
+    swap_size_mb: 512
+    swap_priority: 1
+  
+  # Memory monitoring
+  monitoring:
+    enabled: true
+    check_interval_seconds: 10
+    alert_threshold_percent: 85
+    critical_threshold_percent: 95
+    log_on_high_usage: true
+  
+  # Memory cleanup
+  cleanup:
+    enabled: true
+    cleanup_interval_seconds: 60
+    clear_caches_on_high_usage: true
+    compact_memory: true
+    compact_threshold: 0.3  # Compact when fragmentation > 30%
+
+# =========================
+# SECURITY SETTINGS
+# =========================
+
+security:
+  # Master enable
+  enabled: true
+  
+  # Security level (0-10)
+  security_level: 7
+  
+  # Audit logging
+  enable_audit_logging: true
+  audit_log_file: "logs/security_audit.log"
+  audit_retention_days: 90
+  
+  # Authentication
+  require_authentication: true
+  authentication_method: "jwt"  # Options: token, jwt, oauth2
+  token_expiry_seconds: 3600
+  
+  # Sandbox
+  sandbox_enabled: true
+  sandbox_type: "namespace"  # Options: namespace, docker, process
+  timeout_seconds: 300
+  max_memory_mb: 512
+  
+  # Authorization
+  authorization_enabled: true
+  default_role: "user"
+  rbac_config: "config/rbac.yaml"
+  
+  # Encryption
+  encryption_enabled: true
+  encryption_algorithm: "AES-256-GCM"
+  key_rotation_days: 90
+  master_key_path: "security/keys/master.key"
+  
+  # TLS/SSL
+  tls_enabled: false
+  tls_cert_path: "security/certs/server.crt"
+  tls_key_path: "security/certs/server.key"
+  tls_ca_path: "security/certs/ca.crt"
+  
+  # Input validation
+  input_validation_enabled: true
+  max_input_size_mb: 10
+  allowed_content_types:
+    - "application/json"
+    - "text/plain"
+    - "application/octet-stream"
+  
+  # Rate limiting
+  rate_limiting_enabled: true
+  rate_limit_requests_per_minute: 1000
+  rate_limit_burst: 200
+  
+  # CORS
+  cors_enabled: true
+  allowed_origins:
+    - "*"
+  allowed_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  allowed_headers:
+    - "*"
+  
+  # Security headers
+  security_headers:
+    - "X-Content-Type-Options: nosniff"
+    - "X-Frame-Options: DENY"
+    - "X-XSS-Protection: 1; mode=block"
+    - "Strict-Transport-Security: max-age=31536000; includeSubDomains"
+  
+  # Vulnerability scanning
+  vulnerability_scanning:
+    enabled: true
+    scan_interval_hours: 24
+    auto_patch: false
+    notify_on_vulnerability: true
+  
+  # Intrusion detection
+  intrusion_detection:
+    enabled: true
+    detection_method: "signature"  # Options: signature, anomaly, hybrid
+    update_signatures: true
+    signature_update_interval_hours: 6
+
+# =========================
+# API SETTINGS
+# =========================
+
+api:
+  # Network settings
+  host: "0.0.0.0"
+  port: 8000
+  debug: false
+  
+  # API versioning
+  version: "v1"
+  version_header: "X-API-Version"
+  default_version: "v1"
+  
+  # CORS
+  cors_enabled: true
+  cors_allow_credentials: true
+  cors_max_age: 3600
+  
+  # Rate limiting
+  rate_limit: 1000  # requests per minute
+  rate_limit_by_ip: true
+  rate_limit_by_user: true
+  
+  # Timeouts
+  timeout_seconds: 30
+  keep_alive_timeout_seconds: 60
+  graceful_shutdown_timeout_seconds: 30
+  
+  # Request limits
+  max_request_size_mb: 10
+  max_query_params: 100
+  max_body_size_mb: 5
+  
+  # Response compression
+  compression_enabled: true
+  compression_min_size_bytes: 1024
+  compression_mime_types:
+    - "application/json"
+    - "text/plain"
+    - "text/html"
+  
+  # API documentation
+  docs_enabled: true
+  docs_path: "/docs"
+  redoc_path: "/redoc"
+  openapi_path: "/openapi.json"
+  
+  # Middleware
+  middleware:
+    - "request_logging"
+    - "error_handler"
+    - "request_id"
+    - "cors"
+    - "rate_limiter"
+    - "authentication"
+    - "compression"
+  
+  # API endpoints
+  endpoints:
+    health: "/health"
+    metrics: "/metrics"
+    ready: "/ready"
+    version: "/version"
+  
+  # WebSocket support
+  websocket_enabled: false
+  websocket_path: "/ws"
+  websocket_max_message_size: 1048576  # 1 MB
+  
+  # GraphQL support
+  graphql_enabled: false
+  graphql_path: "/graphql"
+  graphql_playground: true
+  
+  # gRPC support
+  grpc_enabled: false
+  grpc_port: 50051
+  grpc_max_message_size: 10485760  # 10 MB
+
+# =========================
+# DATABASE CONFIGURATION
+# =========================
+
+database:
+  # Primary database
+  backend: "sqlite"  # Options: sqlite, postgresql, mysql, mongodb
+  
+  # SQLite configuration
+  sqlite:
+    connection_string: "sqlite:///data/EDIATH.db"
+    pool_size: 5
+    max_overflow: 10
+    echo: false
+    timeout_seconds: 30
+    journal_mode: "WAL"  # Options: DELETE, TRUNCATE, PERSIST, MEMORY, WAL, OFF
+  
+  # PostgreSQL configuration
+  postgresql:
+    host: "localhost"
+    port: 5432
+    database: "ediath"
+    username: "ediath_user"
+    password: null
+    pool_size: 10
+    max_overflow: 20
+    echo: false
+    ssl_mode: "prefer"  # Options: disable, allow, prefer, require, verify-ca, verify-full
+  
+  # MySQL configuration
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "ediath"
+    username: "ediath_user"
+    password: null
+    pool_size: 10
+    max_overflow: 20
+    echo: false
+    charset: "utf8mb4"
+  
+  # MongoDB configuration
+  mongodb:
+    connection_string: "mongodb://localhost:27017"
+    database: "ediath"
+    username: null
+    password: null
+    max_pool_size: 10
+    min_pool_size: 5
+  
+  # Connection pooling
+  pool:
+    enabled: true
+    pool_size: 5
+    max_overflow: 10
+    pool_timeout_seconds: 30
+    pool_recycle_seconds: 3600
+    pool_pre_ping: true
+  
+  # Database migration
+  migration:
+    enabled: true
+    auto_migrate: false
+    migration_table: "alembic_version"
+    migration_script: "migrations/"
+  
+  # Query optimization
+  query_optimization:
+    enable_query_caching: true
+    query_cache_size: 100
+    slow_query_threshold_ms: 100
+    log_slow_queries: true
+  
+  # Backup
+  backup:
+    enabled: true
+    interval_hours: 24
+    retention_days: 7
+    backup_path: "backups/database"
+    compress: true
+
+# =========================
+# REDIS CONFIGURATION
+# =========================
+
+redis:
+  # Master enable
+  enabled: false
+  
+  # Connection settings
+  host: "localhost"
+  port: 6379
+  db: 0
+  password: null
+  
+  # Connection pooling
+  max_connections: 50
+  min_connections: 5
+  timeout_seconds: 5
+  
+  # SSL/TLS
+  ssl: false
+  ssl_cert_path: null
+  ssl_key_path: null
+  
+  # Sentinel support
+  sentinel:
+    enabled: false
+    masters: []
+    sentinels: []
+  
+  # Cluster support
+  cluster:
+    enabled: false
+    startup_nodes: []
+  
+  # Performance
+  decode_responses: true
+  health_check_interval_seconds: 30
+  
+  # Key prefix
+  key_prefix: "ediath:"
+
+# =========================
+# MONITORING & METRICS
+# =========================
+
+monitoring:
+  # Master enable
+  enabled: true
+  
+  # Metrics collection
+  metrics:
+    enabled: true
+    collection_interval_seconds: 10
+    export_interval_seconds: 60
+    storage_backend: "file"  # Options: file, influxdb, prometheus
+    
+    metrics_to_collect:
+      - "system_cpu"
+      - "system_memory"
+      - "system_disk"
+      - "system_network"
+      - "application_requests"
+      - "application_errors"
+      - "component_status"
+      - "queue_sizes"
+  
+  # Prometheus
+  prometheus:
+    enabled: true
+    port: 9090
+    path: "/metrics"
+    namespace: "ediath"
+  
+  # StatsD
+  statsd:
+    enabled: false
+    host: "localhost"
+    port: 8125
+    prefix: "ediath"
+  
+  # Health checks
+  health_checks:
+    enabled: true
+    interval_seconds: 30
+    timeout_seconds: 10
+    endpoints:
+      - "database"
+      - "cache"
+      - "components"
+      - "external_services"
+  
+  # Alerting
+  alerts:
+    enabled: true
+    check_interval_seconds: 30
+    
+    rules:
+      - name: "high_cpu_usage"
+        condition: "cpu_usage_percent > 90"
+        severity: "warning"
+        action: "notify"
+      
+      - name: "high_memory_usage"
+        condition: "memory_usage_percent > 90"
+        severity: "critical"
+        action: "notify_and_escalate"
+      
+      - name: "component_failure"
+        condition: "component_status == 'down'"
+        severity: "critical"
+        action: "restart_and_notify"
+      
+      - name: "high_error_rate"
+        condition: "error_rate > 0.1"
+        severity: "warning"
+        action: "notify"
+  
+  # Tracing
+  tracing:
+    enabled: false
+    provider: "jaeger"  # Options: jaeger, zipkin
+    agent_host: "localhost"
+    agent_port: 6831
+    service_name: "ediath"
+    sampling_rate: 0.1
+
+# =========================
+# RESOURCE MANAGEMENT
+# =========================
+
+resources:
+  # CPU limits
+  cpu:
+    max_percent: 80
+    reserved_percent: 20
+    affinity: "auto"  # Options: auto, specific cores
+    cores: []  # Specific core IDs if affinity=specific
+  
+  # Memory limits
+  memory:
+    max_mb: 2048
+    reserved_mb: 256
+    swap_mb: 512
+  
+  # Disk limits
+  disk:
+    max_gb: 50
+    reserved_gb: 5
+    min_free_gb: 1
+  
+  # Network limits
+  network:
+    max_mbps: 100
+    reserved_mbps: 10
+  
+  # Resource monitoring
+  monitoring:
+    enabled: true
+    check_interval_seconds: 10
+    alert_threshold_percent: 85
+    throttle_on_high_usage: true
+  
+  # Resource allocation
+  allocation:
+    strategy: "fair_share"  # Options: fair_share, priority, weighted
+    weights:
+      llm: 0.3
+      memory: 0.2
+      automation: 0.2
+      other: 0.3
+
+# =========================
+# ERROR HANDLING
+# =========================
+
+error_handling:
+  # Global settings
+  enabled: true
+  log_errors: true
+  track_error_counts: true
+  error_threshold: 100  # Errors before notification
+  
+  # Error categories
+  categories:
+    recoverable:
+      - "ConnectionError"
+      - "TimeoutError"
+      - "RetryableError"
+      action: "retry"
+      max_retries: 3
+    
+    partial:
+      - "ValidationError"
+      - "ConfigurationError"
+      action: "degrade"
+      degrade_to: "fallback_mode"
+    
+    fatal:
+      - "MemoryError"
+      - "SystemError"
+      - "CriticalFailure"
+      action: "shutdown"
+      require_manual_restart: true
+  
+  # Error recovery
+  recovery:
+    auto_recovery: true
+    recovery_attempts: 3
+    recovery_cooldown_seconds: 60
+    state_rollback: true
+    
+    recovery_actions:
+      - "restart_component"
+      - "clear_cache"
+      - "reset_connection"
+      - "load_backup"
+  
+  # Error escalation
+  escalation:
+    enabled: true
+    escalate_after_retries: 3
+    escalation_path:
+      - "local_retry"
+      - "alternative_component"
+      - "fallback_mode"
+      - "human_operator"
+  
+  # Error reporting
+  reporting:
+    enabled: true
+    methods:
+      - "log"
+      - "metric"
+      - "alert"
+      - "webhook"
+    
+    include_stack_trace: true
+    include_context: true
+    max_report_size: 1048576  # 1 MB
+
+# =========================
+# BACKUP AND RECOVERY
+# =========================
+
+backup:
+  # Master enable
+  enabled: true
+  
+  # Backup schedule
+  interval_hours: 24
+  schedule: "0 2 * * *"  # 2 AM daily
+  retention_days: 30
+  
+  # Backup targets
+  targets:
+    - name: "config"
+      path: "config"
+      compress: true
+    
+    - name: "data"
+      path: "data"
+      compress: true
+      exclude:
+        - "*.tmp"
+        - "cache/*"
+    
+    - name: "models"
+      path: "models"
+      compress: true
+    
+    - name: "database"
+      type: "database"
+      compress: true
+  
+  # Backup locations
+  locations:
+    local:
+      enabled: true
+      path: "backups"
+      max_backups: 10
+      max_size_gb: 50
+    
+    remote:
+      enabled: false
+      type: "s3"  # Options: s3, gcs, azure, ftp
+      bucket: "ediath-backups"
+      region: "us-east-1"
+      access_key: null
+      secret_key: null
+      endpoint_url: null
+  
+  # Backup verification
+  verification:
+    enabled: true
+    verify_after_backup: true
+    test_restore: false
+    checksum_algorithm: "sha256"
+  
+  # Recovery
+  recovery:
+    enabled: true
+    auto_recovery: false
+    recovery_point: "latest"  # Options: latest, specific
+    recovery_timeout_seconds: 300
+    validation_before_recovery: true
+
+# =========================
+# UPDATE MANAGEMENT
+# =========================
+
+updates:
+  # Master enable
+  enabled: true
+  
+  # Update sources
+  sources:
+    - url: "https://updates.ediath.com/stable"
+      verify_ssl: true
+      priority: 1
+    
+    - url: "https://updates.ediath.com/beta"
+      verify_ssl: true
+      priority: 2
+  
+  # Update schedule
+  check_interval_hours: 24
+  auto_update: false
+  update_time: "03:00"  # 3 AM
+  
+  # Update policies
+  policies:
+    security_updates: "auto"  # Options: auto, manual
+    feature_updates: "manual"  # Options: auto, manual
+    major_updates: "manual"  # Options: auto, manual
+  
+  # Version compatibility
+  compatibility:
+    check_compatibility: true
+    min_version: "1.0.0"
+    max_version: null
+  
+  # Rollback
+  rollback:
+    enabled: true
+    rollback_on_failure: true
+    keep_previous_versions: 3
+  
+  # Update logging
+  logging:
+    log_updates: true
+    log_failures: true
+    notify_on_update: true
+
+# =========================
+# DEBUG AND PROFILING
+# =========================
+
+debug:
+  # Debug mode
+  enabled: false
+  verbose: false
+  
+  # Profiling
+  profiling:
+    enabled: false
+    profiler: "cprofile"  # Options: cprofile, pyinstrument, memory_profiler
+    output_dir: "profiles"
+    save_flamegraphs: true
+    profile_interval_seconds: 60
+  
+  # Tracing
+  tracing:
+    enabled: false
+    trace_level: "info"  # Options: debug, info, verbose
+    trace_output: "logs/trace.log"
+    include_timestamps: true
+    trace_components:
+      - "orchestrator"
+      - "llm"
+      - "memory"
+      - "automation"
+  
+  # Debug endpoints
+  debug_endpoints:
+    enabled: false
+    port: 5678
+    allow_remote: false
+    password: null
+  
+  # Performance testing
+  performance_testing:
+    enabled: false
+    benchmark_interval_seconds: 60
+    save_benchmarks: true
+    compare_with_baseline: true
+  
+  # Debug tools
+  tools:
+    - "pdb"
+    - "ipdb"
+    - "pudb"
+    - "web_console"
+  
+  # Verbose logging
+  verbose_logging:
+    enabled: false
+    log_function_calls: true
+    log_line_numbers: true
+    log_variables: false
+
+# =========================
+# INTEGRATION SETTINGS
+# =========================
+
+integration:
+  # External services
+  external_services:
+    openai:
+      enabled: false
+      api_key: null
+      timeout_seconds: 60
+    
+    anthropic:
+      enabled: false
+      api_key: null
+      timeout_seconds: 60
+    
+    google:
+      enabled: false
+      api_key: null
+      timeout_seconds: 30
+  
+  # Webhook integrations
+  webhooks:
+    enabled: false
+    endpoints: []
+    retry_attempts: 3
+    timeout_seconds: 10
+  
+  # Message queue integrations
+  message_queues:
+    rabbitmq:
+      enabled: false
+      url: "amqp://localhost"
+      queue_prefix: "ediath"
+    
+    kafka:
+      enabled: false
+      bootstrap_servers: ["localhost:9092"]
+      topic_prefix: "ediath"
+  
+  # Cloud integrations
+  cloud:
+    aws:
+      enabled: false
+      region: "us-east-1"
+      access_key: null
+      secret_key: null
+    
+    azure:
+      enabled: false
+      tenant_id: null
+      client_id: null
+      client_secret: null
+    
+    gcp:
+      enabled: false
+      project_id: null
+      credentials_path: null
