@@ -1,6 +1,0 @@
-body{font-family:Inter,Roboto,Arial;margin:0;background:#f4f6f8;color:#222}
-.container{max-width:900px;margin:24px auto;padding:16px}
-.card{background:#fff;border-radius:8px;padding:12px;margin-bottom:12px;box-shadow:0 1px 4px rgba(16,24,40,0.06)}
-.controls button{margin-right:8px}
-textarea{width:100%}
-pre{background:#111;color:#0f0;padding:8px;border-radius:6px;overflow:auto}
